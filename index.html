@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Catálogo</title>
+  <meta name="description" content="Catálogo oficial de Mishi Studio. Encuentra pins, stickers, llaveros y productos personalizados con diseños únicos.">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/webp" href="images/logo.webp">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0c29">
+
+  <!-- Redes Sociales (Open Graph) -->
+  <meta property="og:title" content="Catálogo Mishi Studio 🐱">
+  <meta property="og:description" content="Pins, stickers y llaveros personalizados. Diseños únicos y alta calidad.">
+  <meta property="og:image" content="images/logo.webp">
+  <meta property="og:type" content="website">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="image" href="images/logo.webp">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="styles/style.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "Mishi Studio",
+    "image": "images/logo.webp",
+    "description": "Catálogo de pins, stickers y llaveros personalizados.",
+    "priceRange": "$"
+  }
+  </script>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="nav-brand">Catálogo</div>
+    <ul class="nav-links" id="nav-links"></ul>
+  </nav>
+
+  <main id="catalog" class="catalog-grid"></main>
+  <footer>
+    <div class="footer-content">
+      <div class="footer-col">
+        <div class="footer-brand">
+          <img src="images/logo.webp" alt="Mishi Logo" width="40" height="40">
+          <span>MISHI STUDIO</span>
+        </div>
+        <p>Creando detalles únicos con amor y creatividad. Personaliza tu mundo con nuestros productos.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Síguenos</h4>
+        <div class="social-links">
+          <a href="#" class="social-btn" aria-label="TikTok">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z"/></svg>
+          </a>
+          <a href="#" class="social-btn" aria-label="Facebook">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/></svg>
+          </a>
+          <a href="https://wa.me/59176904748" class="social-btn" aria-label="WhatsApp" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
+          </a>
+        </div>
+        <p style="margin-top: 15px; color: #aaa; font-size: 0.85rem;">📍 Envíos solo en Cochabamba</p>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Mishi Studio · Todos los derechos reservados</p>
+    </div>
+  </footer>
+
+  <button id="scrollTopBtn" aria-label="Volver arriba">⬆</button>
+
+  <script src="scripts/data.js" defer></script>
+  <script src="scripts/app.js" defer></script>
+
+  <!-- Registro PWA Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      // Evitar errores en consola si se abre desde archivo local (file://)
+      if (window.location.protocol === 'file:') {
+        console.warn('⚠️ PWA desactivada localmente. Usa Live Server o sube a GitHub Pages para probar la instalación.');
+      } else {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('App lista para instalar', reg))
+            .catch(err => console.log('Error SW:', err));
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>
