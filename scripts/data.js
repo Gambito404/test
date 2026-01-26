@@ -44,13 +44,17 @@ const catalog = [
         description: "Tamaño grande de 58mm",
         images: [
           "images/pines/pin58mm.webp",
+          "images/pines/pin58mm1.webp",
+          "images/pines/pin58mm2.webp",
+          "images/pines/pin58mm3.webp",
+          "images/pines/pin58mm4.webp",
          
         ],
         prices: [
-          { quantity: 1, price: 5 },
-          { quantity: 12, price: 48 },
-          { quantity: 50, price: 175 },
-          { quantity: 100, price: 250 },
+          { quantity: 1, price: 6 },
+          { quantity: 12, price: 60 },
+          { quantity: 50, price: 200 },
+          { quantity: 100, price: 350 },
         ],
       },
     ],
