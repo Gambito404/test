@@ -5,9 +5,33 @@ const catalog = [
     subtitle: " Variedad de estilos y tamaños",
     items: [
       {
-        name: "Pines de 45mm",
-        description: "Clásicos y versátiles",
-        images: ["images/pines/pin45mm1.webp", "images/pines/pin45mm2.webp"],
+        name: "Pines pequeños",
+        description: "Pequeños y económicos, tamaño de 25mm",
+        images: [
+          "images/pines/pin25mm.webp",
+          "images/pines/pin25mm1.webp",
+          "images/pines/pin25mm2.webp",
+          "images/pines/pin25mm3.webp",
+          "images/pines/pin25mm4.webp",
+          "images/pines/pin25mm5.webp",
+        ],
+        prices: [
+          { quantity: 1, price: 2.5 },
+          { quantity: 12, price: 24 },
+          { quantity: 50, price: 90 },
+          { quantity: 100, price: 150 },
+        ],
+      },
+      {
+        name: "Pines medianos",
+        description: "Tamaño estándar de 45mm",
+        images: [
+          "images/pines/pin45mm.webp",
+          "images/pines/pin45mm1.webp",
+          "images/pines/pin45mm2.webp",
+          "images/pines/pin45mm3.webp",
+          "images/pines/pin45mm4.webp",
+        ],
         prices: [
           { quantity: 1, price: 5 },
           { quantity: 12, price: 48 },
@@ -16,17 +40,19 @@ const catalog = [
         ],
       },
       {
-        name: "Pines de 25mm",
-        description: "Pequeños y económicos",
-        images: ["images/pines/pin25mm1.webp", "images/pines/pin25mm2.webp", "images/pines/pin25mm3.webp", "images/pines/pin25mm4.webp"],
+        name: "Pines grandes",
+        description: "Tamaño grande de 58mm",
+        images: [
+          "images/pines/pin58mm.webp",
+         
+        ],
         prices: [
-          { quantity: 1, price: 2.5 },
-          { quantity: 12, price: 24 },
-          { quantity: 50, price: 90 },
-          { quantity: 100, price: 150 },
+          { quantity: 1, price: 5 },
+          { quantity: 12, price: 48 },
+          { quantity: 50, price: 175 },
+          { quantity: 100, price: 250 },
         ],
       },
-      
     ],
   },
 
@@ -35,7 +61,19 @@ const catalog = [
     title: "Stickers",
     subtitle: "Alta calidad y resistencia",
     items: [
-     
+      {
+        name: "Sticker Cuadrado",
+        description: "Sticker cuadrado de 5x5 cm",
+        images: [
+          "images/stickers/sticker.webp",
+        ],
+        prices: [
+          { quantity: 1, price: 2 },
+          { quantity: 12, price: 18 },
+          { quantity: 50, price: 70 },
+          { quantity: 100, price: 120 },
+        ],
+      },
     ],
   },
 
@@ -73,6 +111,36 @@ const catalog = [
           { quantity: 100, price: 400 },
         ],
       },
+      {
+        name: "Llavero Acrilico",
+        description: "Cuadrado de acrílico desplegable, tamaño 6x4",
+        images: [
+          "images/llaveros/llavero-acrilico1.webp",
+          "images/llaveros/llavero-acrilico2.webp",
+          "images/llaveros/llavero-acrilico3.webp",
+          "images/llaveros/llavero-acrilico4.webp",
+        ],
+        prices: [
+          { quantity: 1, price: 6 },
+          { quantity: 12, price: 48 },
+          { quantity: 50, price: 190 },
+          { quantity: 100, price: 350 },
+        ],
+      },
+      {
+        name: "Llavero Corazon",
+        description: "Llavero con forma de corazón, tamaño 58mm",
+        images: [
+          "images/llaveros/llavero-corazon.webp",
+         
+        ],
+        prices: [
+          { quantity: 1, price: 6 },
+          { quantity: 12, price: 60 },
+          { quantity: 50, price: 225 },
+          { quantity: 100, price: 400 },
+        ],
+      }
     ],
   },
 ];

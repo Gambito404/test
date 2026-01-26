@@ -1,4 +1,72 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  const mainContent = document.querySelector('main');
+  const footer = document.querySelector('footer');
+
+  // Ocultar contenido principal al inicio para la animación de carga
+  if (mainContent) mainContent.style.opacity = 0;
+  if (footer) footer.style.opacity = 0;
+
+  const hideLoader = () => {
+    if (!loadingOverlay) return;
+    loadingOverlay.style.opacity = 0;
+    // Eliminar el loader del DOM después de la transición para no interferir
+    loadingOverlay.addEventListener('transitionend', () => {
+      loadingOverlay.remove();
+    }, { once: true });
+
+    // Mostrar contenido principal con una transición suave
+    if (mainContent) mainContent.style.transition = 'opacity 0.5s ease-in';
+    if (footer) footer.style.transition = 'opacity 0.5s ease-in';
+    if (mainContent) mainContent.style.opacity = 1;
+    if (footer) footer.style.opacity = 1;
+  };
+
+  const preloadResources = async () => {
+    const imageUrls = [];
+    if (typeof catalog !== 'undefined') {
+      catalog.forEach(section => {
+        section.items.forEach(item => {
+          if (item.image) imageUrls.push(item.image);
+          if (item.images) imageUrls.push(...item.images);
+        });
+      });
+    }
+
+    const totalResources = imageUrls.length;
+    if (totalResources === 0) {
+      hideLoader();
+      return;
+    }
+
+    let loadedCount = 0;
+    const progressCircle = document.querySelector('.loader-progress');
+    const circumference = progressCircle ? 2 * Math.PI * progressCircle.r.baseVal.value : 0;
+    
+    if (progressCircle) {
+      progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+      progressCircle.style.strokeDashoffset = circumference;
+    }
+
+    const updateProgress = () => {
+      loadedCount++;
+      const progress = loadedCount / totalResources;
+      if (progressCircle) {
+        const offset = circumference * (1 - progress);
+        progressCircle.style.strokeDashoffset = offset;
+      }
+    };
+
+    const promises = imageUrls.map(url => new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = () => { updateProgress(); resolve(); };
+      img.src = url;
+    }));
+
+    await Promise.all(promises);
+    setTimeout(hideLoader, 500); // Pequeña demora para que la animación de llenado se vea completa
+  };
+
   // Inyectar librería de Partículas
   const loadParticles = () => {
     const script = document.createElement("script");
@@ -46,11 +114,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(script);
   };
 
-  if (document.readyState === "complete") {
-    setTimeout(loadParticles, 1500);
-  } else {
-    window.addEventListener("load", () => setTimeout(loadParticles, 1500));
-  }
+  // Iniciar la precarga y luego las partículas
+  preloadResources().then(() => {
+    // Cargar partículas después de que todo esté visible para no sobrecargar el inicio
+    setTimeout(loadParticles, 500);
+  });
 
   // Inyectar HTML de Componentes
   const componentsHtml = `
@@ -59,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="lightbox-content">
         <button class="lightbox-close">&times;</button>
         <button class="lightbox-btn prev">❮</button>
-        <img src="" class="lightbox-img" id="lightboxImg" alt="Vista previa" width="600" height="600">
+        <img src="" class="lightbox-img" id="lightboxImg" alt="Vista previa" width="1080" height="1080">
         <button class="lightbox-btn next">❯</button>
       </div>
     </div>
@@ -225,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", (e) => {
         const idx = parseInt(e.target.dataset.index);
         cart.splice(idx, 1);
-        saveCart(); // Guardar cambios
+        saveCart();
         renderCart();
       });
     });
@@ -249,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "Hola Mishi Studio 🐱, quiero realizar el siguiente pedido:\n\n";
 
     cart.forEach((item, i) => {
-      message += `- ${i + 1}. ${item.name} \n   Detalle: ${item.desc}\n`;
+      message += `- ${i + 1}. *${item.name}* \n   Detalle: ${item.desc}\n`;
       total += item.price || 0;
       if (!item.price) hasCustom = true;
     });
@@ -260,13 +328,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       totalText = `${total} Bs${hasCustom ? " + Cotización" : ""}`;
     }
-    message += `\nTotal Estimado: ${totalText}`;
+    message += `\n*Total Estimado: ${totalText}*`;
     message += "\nEspero su confirmación. ¡Gracias!";
 
     const url = `https://wa.me/59176904748?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
-    cart = []; // Limpiar carrito tras enviar
-    saveCart(); // Guardar carrito vacío
+    cart = [];
+    saveCart();
   });
 
   /* ===== LÓGICA LIGHTBOX ===== */
@@ -474,6 +542,106 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!container || !navLinks) return;
 
+  /* ===== FILTRO DE PRODUCTOS (DROPDOWN) ===== */
+  let filterHtml = `
+    <div class="filter-container fade-in-up">
+      <div class="dropdown">
+        <button class="dropdown-btn" id="filterDropdownBtn">
+          Viendo: Todo <span>▼</span>
+        </button>
+        <div class="dropdown-content" id="filterDropdownContent">
+          <label class="filter-option">
+            <input type="checkbox" value="all" checked>
+            <span>Seleccionar Todos</span>
+          </label>
+  `;
+
+  if (typeof catalog !== 'undefined') {
+    catalog.forEach((section) => {
+      filterHtml += `
+        <label class="filter-option">
+          <input type="checkbox" value="${section.id}" checked>
+          <span>${section.title}</span>
+        </label>
+      `;
+    });
+  }
+  filterHtml += `</div></div></div>`;
+  container.insertAdjacentHTML("afterbegin", filterHtml);
+
+  // Lógica del Dropdown
+  const dropdownBtn = document.getElementById("filterDropdownBtn");
+  const dropdownContent = document.getElementById("filterDropdownContent");
+  const allCheckbox = container.querySelector('input[value="all"]');
+  const categoryCheckboxes = container.querySelectorAll('.filter-option input:not([value="all"])');
+
+  // Abrir/Cerrar Dropdown
+  dropdownBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdownContent.classList.toggle("show");
+    dropdownBtn.classList.toggle("active");
+  });
+
+  // Cerrar al hacer click fuera
+  document.addEventListener("click", (e) => {
+    if (!dropdownBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
+      dropdownContent.classList.remove("show");
+      dropdownBtn.classList.remove("active");
+    }
+  });
+
+  const updateFilterState = () => {
+    const checkedBoxes = Array.from(categoryCheckboxes).filter(cb => cb.checked);
+    const isAllSelected = checkedBoxes.length === categoryCheckboxes.length;
+    
+    allCheckbox.checked = isAllSelected;
+
+    if (isAllSelected) {
+      dropdownBtn.innerHTML = 'Viendo: Todo <span>▼</span>';
+    } else if (checkedBoxes.length === 0) {
+      dropdownBtn.innerHTML = '⚠️ Selecciona una <span>▼</span>';
+    } else {
+      const names = checkedBoxes.map(cb => cb.nextElementSibling.textContent).join(', ');
+      dropdownBtn.innerHTML = `Viendo: ${names} <span>▼</span>`;
+    }
+
+    categoryCheckboxes.forEach(cb => {
+      const sectionId = cb.value;
+      const sectionEl = document.getElementById(sectionId);
+      const navLink = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
+      const navLi = navLink ? navLink.parentElement : null;
+
+      if (cb.checked) {
+        if (sectionEl) sectionEl.style.display = "block";
+        if (navLi) navLi.style.display = "block";
+      } else {
+        if (sectionEl) sectionEl.style.display = "none";
+        if (navLi) navLi.style.display = "none";
+      }
+    });
+  };
+
+  // Evento para "Todos"
+  allCheckbox.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      categoryCheckboxes.forEach(cb => cb.checked = true);
+    } else {
+      e.target.checked = true;
+    }
+    updateFilterState();
+  });
+
+  // Eventos para Categorías individuales
+  categoryCheckboxes.forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      const activeCount = Array.from(categoryCheckboxes).filter(c => c.checked).length;
+      if (activeCount === 0) {
+        e.target.checked = true;
+      }
+      updateFilterState();
+    });
+  });
+
   /* ===== LÓGICA DEL MENÚ MÓVIL ===== */
   const navbar = document.querySelector(".navbar");
   if (navbar) {
@@ -610,16 +778,24 @@ document.addEventListener("DOMContentLoaded", () => {
         const nextBtn = card.querySelector(".next");
 
         const updateView = () => {
-          imgEl.src = images[currentIndex];
-          badgeEl.textContent = `${currentIndex + 1} / ${images.length}`;
+          imgEl.style.opacity = 0;
+
+          setTimeout(() => {
+            imgEl.src = images[currentIndex];
+            badgeEl.textContent = `${currentIndex + 1} / ${images.length}`;
+            imgEl.style.opacity = 1;
+          }, 300); 
         };
 
-        prevBtn.addEventListener("click", () => {
+        // --- Controles Manuales ---
+        prevBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
           currentIndex = (currentIndex - 1 + images.length) % images.length;
           updateView();
         });
 
-        nextBtn.addEventListener("click", () => {
+        nextBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
           currentIndex = (currentIndex + 1) % images.length;
           updateView();
         });
@@ -643,7 +819,6 @@ document.addEventListener("DOMContentLoaded", () => {
   installBtn.href = "#";
   installBtn.innerHTML = "📲 INSTALAR APP";
   installBtn.style.color = "#4cd137"; // Verde brillante para destacar
-  installBtn.style.fontWeight = "800";
   installLi.style.display = "none";
   installLi.appendChild(installBtn);
   navLinks.appendChild(installLi);
