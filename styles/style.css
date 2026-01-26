@@ -14,6 +14,10 @@
   font-family: 'Montserrat', sans-serif;
 }
 
+html {
+  background-color: #0f0c29; /* Solución al parpadeo blanco en scroll */
+}
+
 body {
   background: #0f0c29;
   background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
@@ -392,6 +396,8 @@ body {
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Mejora rendimiento en iOS */
+  will-change: transform; /* Optimiza el renderizado durante el scroll */
 }
 
 /* Animación de flotación aleatoria para que no se muevan todos igual */
@@ -824,6 +830,10 @@ footer::before {
 
   #catalog {
     padding-top: 100px;
+  }
+
+  .product-card.floating {
+    animation: none; /* Desactivar animación flotante en móvil para ganar FPS */
   }
 }
 

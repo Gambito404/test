@@ -1,4 +1,4 @@
-const CACHE_NAME = "mishi-v6";
+const CACHE_NAME = "mishi-v1.0.1";
 const ASSETS = [
   "./",
   "./index.html",
