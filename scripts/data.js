@@ -6,7 +6,7 @@ const catalog = [
     items: [
       {
         name: "Pines pequeños",
-        description: "Pequeños y económicos, tamaño de 25mm",
+        description: "Pequeños y económico de 25mm",
         images: [
           "images/pines/pin25mm.webp",
           "images/pines/pin25mm1.webp",
@@ -54,7 +54,7 @@ const catalog = [
           { quantity: 1, price: 6 },
           { quantity: 12, price: 60 },
           { quantity: 50, price: 200 },
-          { quantity: 100, price: 450 },
+          { quantity: 100, price: 350 },
         ],
       },
     ],
