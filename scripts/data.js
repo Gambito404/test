@@ -6,7 +6,7 @@ const catalog = [
     items: [
       {
         name: "Pines pequeños",
-        description: "Pequeños y económico de 25mm",
+        description: "Pequeños y económicos, tamaño de 25mm",
         images: [
           "images/pines/pin25mm.webp",
           "images/pines/pin25mm1.webp",
@@ -53,29 +53,8 @@ const catalog = [
         prices: [
           { quantity: 1, price: 6 },
           { quantity: 12, price: 60 },
-          { quantity: 50, price: 201 },
-          { quantity: 100, price: 550 },
-        ],
-      },
-    ],
-  },
-
-  {
-    id: "stickers",
-    title: "Stickers",
-    subtitle: "Alta calidad y resistencia",
-    items: [
-      {
-        name: "Sticker Cuadrado",
-        description: "Sticker cuadrado de 5x5 cm",
-        images: [
-          "images/stickers/sticker.webp",
-        ],
-        prices: [
-          { quantity: 1, price: 2 },
-          { quantity: 12, price: 18 },
-          { quantity: 50, price: 70 },
-          { quantity: 100, price: 120 },
+          { quantity: 50, price: 200 },
+          { quantity: 100, price: 350 },
         ],
       },
     ],
@@ -145,6 +124,30 @@ const catalog = [
           { quantity: 100, price: 400 },
         ],
       }
+    ],
+  },
+  {
+    id: "stickers",
+    title: "Stickers",
+    subtitle: "Alta calidad y resistencia",
+    items: [
+      {
+        name: "Sticker Cuadrado",
+        description: "Papel Fotografico Brillante, tamaño de 5cm a 7cm de alto",
+        images: [
+          "images/stickers/sticker1.webp",
+          "images/stickers/sticker2.webp",
+          "images/stickers/sticker3.webp",
+          "images/stickers/sticker4.webp",
+          "images/stickers/sticker5.webp",
+        ],
+        prices: [
+          { quantity: 1, price: 1 },
+          { quantity: 12, price: 10 },
+          { quantity: 20, price: 15 },
+          { quantity: 100, price: 60 },
+        ],
+      },
     ],
   },
 ];
