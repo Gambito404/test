@@ -15,7 +15,7 @@
 }
 
 html {
-  background-color: #0f0c29; /* Solución al parpadeo blanco en scroll */
+  background-color: #0f0c29;
 }
 
 body {
@@ -180,7 +180,7 @@ body {
 
 /* ===== MENU MOVIL (HAMBURGUESA) ===== */
 .menu-toggle {
-  display: none; /* Oculto en escritorio */
+  display: none;
   background: none;
   border: none;
   color: var(--accent);
@@ -211,10 +211,9 @@ body {
 }
 
 /* ===== SECCIONES ===== */
-/* Corrección: Empujamos todo el catálogo hacia abajo para librar el navbar fijo */
 #catalog {
   padding-top: 140px;
-  min-height: 100vh; /* Evita que el footer salte antes de cargar productos (Mejora CLS) */
+  min-height: 100vh;
 }
 
 .catalog-section {
@@ -387,7 +386,7 @@ body {
 
 /* ===== CARD ===== */
 .product-card {
-  background: rgba(255, 255, 255, 0.03); /* Cristal Oscuro */
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
@@ -396,11 +395,10 @@ body {
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); /* Mejora rendimiento en iOS */
-  will-change: transform; /* Optimiza el renderizado durante el scroll */
+  -webkit-backdrop-filter: blur(10px);
+  will-change: transform;
 }
 
-/* Animación de flotación aleatoria para que no se muevan todos igual */
 .product-card:nth-child(even) {
   animation-delay: 1s;
 }
@@ -445,14 +443,14 @@ body {
 .card-body h3 {
   font-size: 1.3rem;
   margin-bottom: 8px;
-  color: #fff; /* Texto blanco para fondo oscuro */
+  color: #fff;
   font-weight: 700;
   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .card-body p {
   font-size: 0.95rem;
-  color: #ccc; /* Gris claro */
+  color: #ccc;
   margin-bottom: 20px;
   flex-grow: 1;
 }
@@ -491,11 +489,11 @@ body {
   transition: all 0.3s ease;
   z-index: 5;
   backdrop-filter: blur(4px);
-  opacity: 0; /* Ocultos por defecto para limpieza visual */
+  opacity: 0;
 }
 
 .card-image-container:hover .img-btn {
-  opacity: 1; /* Aparecen al pasar el mouse */
+  opacity: 1;
 }
 
 .img-btn:hover {
@@ -506,7 +504,6 @@ body {
 .img-btn.prev { left: 10px; }
 .img-btn.next { right: 10px; }
 
-/* En móviles siempre visibles */
 @media (max-width: 768px) {
   .img-btn { opacity: 1; }
 }
@@ -514,7 +511,7 @@ body {
 /* ===== PRECIOS ===== */
 .pricing-container {
   margin-top: auto;
-  background: rgba(0, 0, 0, 0.25); /* Fondo oscuro para precios */
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 12px;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -536,7 +533,6 @@ body {
   padding-bottom: 0;
 }
 
-/* Estilos para la nueva tabla de precios */
 .price-table {
   width: 100%;
   border-collapse: collapse;
@@ -646,7 +642,6 @@ footer {
   box-shadow: 0 -20px 50px rgba(0,0,0,0.3);
 }
 
-/* Línea de brillo superior */
 footer::before {
   content: '';
   position: absolute;
@@ -793,7 +788,7 @@ footer::before {
   }
 
   .menu-toggle {
-    display: block; /* Visible en móvil */
+    display: block;
   }
 
   .nav-links {
@@ -833,8 +828,25 @@ footer::before {
   }
 
   .product-card.floating {
-    animation: none; /* Desactivar animación flotante en móvil para ganar FPS */
+    animation: none;
   }
+
+  .navbar, .navbar.scrolled, 
+  .product-card, 
+  .dropdown-btn, 
+  .dropdown-content,
+  .modal-overlay,
+  .toast,
+  .image-badge,
+  .img-btn,
+  .nav-links {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .navbar.scrolled { background: #1a1a2e; }
+  .product-card { background: #1e1e2f; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+  .nav-links { background: #0f0c29; }
 }
 
 /* ===== MODAL DE COTIZACIÓN ===== */

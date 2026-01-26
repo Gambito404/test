@@ -1,4 +1,4 @@
-const CACHE_NAME = "mishi-v1.0.1";
+const CACHE_NAME = "mishi-v1.0.2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -77,7 +77,7 @@ self.addEventListener("fetch", (e) => {
           </head>
           <body>
             <h1>⚠️ Sin Conexión</h1>
-            <p>No pudimos conectar con el servidor.<br>Esta aplicación necesita internet para mostrarte el catálogo actualizado.</p>
+            <p>No pudimos conectar con el servidor.</p>
             <button onclick="window.location.reload()">🔄 Reintentar</button>
           </body>
           </html>`,

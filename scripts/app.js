@@ -117,7 +117,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Iniciar la precarga y luego las partículas
   preloadResources().then(() => {
     // Cargar partículas después de que todo esté visible para no sobrecargar el inicio
-    setTimeout(loadParticles, 500);
+    // OPTIMIZACIÓN: No cargar partículas en móviles para mejorar rendimiento
+    if (window.innerWidth > 768) {
+      setTimeout(loadParticles, 500);
+    }
   });
 
   // Inyectar HTML de Componentes
