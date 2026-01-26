@@ -54,7 +54,7 @@ const catalog = [
           { quantity: 1, price: 6 },
           { quantity: 12, price: 60 },
           { quantity: 50, price: 200 },
-          { quantity: 100, price: 350 },
+          { quantity: 100, price: 450 },
         ],
       },
     ],
