@@ -905,4 +905,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }, spyOptions);
 
   sections.forEach((section) => spyObserver.observe(section));
+
+  // AUTO-RELOAD: Detectar nueva versión y recargar automáticamente
+  let refreshing = false;
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }
 });

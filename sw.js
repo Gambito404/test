@@ -1,4 +1,4 @@
-const CACHE_NAME = "mishi-v2.0.0";
+const CACHE_NAME = "mishi-v2.0.1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (e) => {
   // Intentamos obtener lo más nuevo. Si falla (offline), usamos lo guardado.
   if (e.request.mode === 'navigate' || url.pathname.endsWith('data.js')) {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request.url, { cache: 'reload' }) // Forzar red ignorando caché HTTP del navegador
         .then((networkResponse) => {
           return caches.open(CACHE_NAME).then((cache) => {
             cache.put(e.request, networkResponse.clone());
