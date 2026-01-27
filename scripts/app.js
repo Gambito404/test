@@ -199,6 +199,66 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeCartBtn = document.getElementById("closeCart");
   const checkoutBtn = document.getElementById("checkoutBtn");
 
+  // FUNCIÓN NUEVA: Validar y actualizar precios al cargar
+  const validateCartPrices = () => {
+    if (!cart.length || typeof catalog === 'undefined') return;
+    
+    let cartUpdated = false;
+
+    cart.forEach(item => {
+      // 1. Buscar el producto en el catálogo actual por nombre
+      let product = null;
+      for (const section of catalog) {
+        const found = section.items.find(p => p.name === item.name);
+        if (found) {
+          product = found;
+          break;
+        }
+      }
+
+      // Si no existe el producto o no tiene precios fijos, saltar
+      if (!product || !product.prices) return;
+
+      let currentPriceTier = null;
+
+      // 2. Determinar qué precio corresponde
+      if (item.priceIndex !== undefined && item.priceIndex !== 'custom') {
+        // Método nuevo: Usamos el índice guardado
+        currentPriceTier = product.prices[item.priceIndex];
+      } else if (!item.priceIndex && item.price > 0) {
+        // Método compatibilidad (para items viejos): Intentamos adivinar por la cantidad en la descripción
+        // Ej: "12 Unidades (60 Bs)" -> Extraemos "12"
+        const match = item.desc.match(/^(\d+)\s+Unidad/);
+        if (match) {
+          const qty = parseInt(match[1]);
+          currentPriceTier = product.prices.find(p => p.quantity === qty);
+        }
+      }
+
+      // 3. Actualizar si el precio ha cambiado
+      if (currentPriceTier) {
+        if (item.price !== currentPriceTier.price) {
+          item.price = currentPriceTier.price;
+          // Actualizamos también el texto descriptivo
+          item.desc = `${currentPriceTier.quantity} ${currentPriceTier.quantity === 1 ? "Unidad" : "Unidades"} (${currentPriceTier.price} Bs)`;
+          
+          // Recalcular ahorro si aplica
+          const unitPriceObj = product.prices.find(p => p.quantity === 1);
+          if (unitPriceObj && currentPriceTier.quantity > 1) {
+             item.originalPrice = unitPriceObj.price * currentPriceTier.quantity;
+             item.saving = item.originalPrice - currentPriceTier.price;
+          }
+          cartUpdated = true;
+        }
+      }
+    });
+
+    if (cartUpdated) {
+      saveCart();
+      showToast("⚠️ Precios del carrito actualizados");
+    }
+  };
+
   const saveCart = () => {
     localStorage.setItem("mishiCart", JSON.stringify(cart));
     updateCartUI();
@@ -214,6 +274,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // Ejecutar validación al iniciar
+  validateCartPrices();
   updateCartUI();
 
   const showItemDetail = (item) => {
@@ -499,9 +561,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let originalPrice = 0;
     let saving = 0;
+    let selectedIdx = 'custom'; // Por defecto custom
 
     if (option.price > 0 && currentProduct.prices) {
-      const selectedIdx = document.querySelector(
+      // Capturamos el índice seleccionado para guardarlo
+      selectedIdx = document.querySelector(
         'input[name="priceOption"]:checked',
       ).value;
       const priceData = currentProduct.prices[selectedIdx];
@@ -521,6 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fullDesc: currentProduct.description,
       originalPrice: originalPrice,
       saving: saving,
+      priceIndex: selectedIdx // Guardamos referencia para futuras actualizaciones
     });
 
     saveCart();
