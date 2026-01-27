@@ -36,7 +36,7 @@ const catalog = [
           { quantity: 1, price: 5 },
           { quantity: 12, price: 48 },
           { quantity: 50, price: 175 },
-          { quantity: 100, price: 250 },
+          { quantity: 100, price: 350 },
         ],
       },
       {
@@ -68,18 +68,26 @@ const catalog = [
       {
         name: "Llavero Destapador",
         description: "Incluye función de abrebotellas, tamaño 45mm",
-        image: "images/llaveros/llavero-destapador.webp",
+        images: [
+          "images/llaveros/llavero-destapador.webp",
+          "images/llaveros/llavero-destapador1.webp",
+          "images/llaveros/llavero-destapador2.webp",
+          "images/llaveros/llavero-destapador3.webp",
+          "images/llaveros/llavero-destapador4.webp",
+          "images/llaveros/llavero-destapador5.webp",
+        ],
         prices: [
-          { quantity: 1, price: 7 },
-          { quantity: 12, price: 70 },
-          { quantity: 50, price: 250 },
-          { quantity: 100, price: 450 },
+          { quantity: 1, price: 8 },
+          { quantity: 12, price: 84 },
+          { quantity: 50, price: 275 },
+          { quantity: 100, price: 500 },
         ],
       },
       {
         name: "Llavero Espejo",
         description: "Con espejo incorporado, tamaño 58mm",
         images: [
+          "images/llaveros/llavero-espejo.webp",
           "images/llaveros/llavero-espejo1.webp",
           "images/llaveros/llavero-espejo2.webp",
           "images/llaveros/llavero-espejo3.webp",
@@ -95,9 +103,10 @@ const catalog = [
         ],
       },
       {
-        name: "Llavero Acrilico",
+        name: "Llavero Acrilico Rectangular",
         description: "Cuadrado de acrílico desplegable, tamaño 6x4",
         images: [
+          "images/llaveros/llavero-acrilico.webp",
           "images/llaveros/llavero-acrilico1.webp",
           "images/llaveros/llavero-acrilico2.webp",
           "images/llaveros/llavero-acrilico3.webp",
@@ -132,7 +141,7 @@ const catalog = [
     subtitle: "Alta calidad y resistencia",
     items: [
       {
-        name: "Sticker ",
+        name: "Sticker Cuadrado",
         description: "Papel Fotografico Brillante, tamaño de 5cm a 7cm de alto",
         images: [
           "images/stickers/sticker1.webp",
