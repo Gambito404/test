@@ -700,7 +700,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     section.items.forEach((item) => {
       const card = document.createElement("article");
-      card.className = "product-card fade-in-up";
+      card.className = "product-card floating";
 
       const images = item.images || (item.image ? [item.image] : []);
       const mainImage = images.length > 0 ? images[0] : "";

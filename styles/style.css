@@ -16,6 +16,9 @@
 
 html {
   background-color: #0f0c29;
+  scrollbar-width: auto; /* Visible en Firefox/Android moderno */
+  scrollbar-color: var(--primary) #0f0c29;
+  overflow-y: scroll; /* Forzar barra siempre visible */
 }
 
 body {
@@ -65,12 +68,12 @@ body {
 .loader-logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
 
 /* ===== SCROLLBAR PERSONALIZADO ===== */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #0f0c29; }
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: #1a1a2e; } /* Fondo sólido para evitar superposición */
 ::-webkit-scrollbar-thumb { 
   background: var(--primary); 
-  border-radius: 5px; 
-  border: 2px solid #0f0c29;
+  border-radius: 6px; 
+  border: 3px solid #0f0c29;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
