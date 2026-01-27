@@ -205,6 +205,23 @@ html::-webkit-scrollbar {
   width: 100%;
 }
 
+/* Badge contador de favoritos en menú */
+.nav-badge {
+  background: var(--accent);
+  color: var(--dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+  vertical-align: middle;
+  display: none; /* Se oculta si es 0 */
+  min-width: 20px;
+  text-align: center;
+  justify-content: center;
+  box-shadow: 0 0 5px rgba(238, 159, 196, 0.5);
+}
+
 /* ===== MENU MOVIL (HAMBURGUESA) ===== */
 .menu-toggle {
   display: none;
@@ -497,6 +514,67 @@ html::-webkit-scrollbar {
   backdrop-filter: blur(4px);
   font-weight: 600;
   border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* ===== BOTÓN COMPARTIR ===== */
+.share-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.share-btn:hover {
+  background: #25D366; /* Verde WhatsApp */
+  border-color: #25D366;
+  transform: scale(1.1);
+}
+
+/* ===== BOTÓN FAVORITOS (CORAZÓN) ===== */
+.fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 10;
+  padding-top: 2px; /* Ajuste visual para centrar el corazón */
+}
+
+.fav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.fav-btn.active {
+  background: #fff;
+  color: #ff4757;
+  border-color: #ff4757;
+  box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+  transform: scale(1.1);
 }
 
 /* ===== CONTROLES DE IMAGEN (SLIDER) ===== */

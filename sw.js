@@ -1,4 +1,5 @@
-const CACHE_NAME = "mishi-v3.0.2";
+
+const CACHE_NAME = "mishi-v3.3.6";
 const ASSETS = [
   "./images/logo.webp", // Solo cacheamos el logo para la pantalla de error
   "./images/dribbble_1.gif", // Cacheamos el GIF del cavernícola

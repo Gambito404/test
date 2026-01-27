@@ -143,7 +143,7 @@ const catalog = [
     subtitle: "Alta calidad y resistencia",
     items: [
       {
-        name: "Stickers",
+        name: "Sticker Cuadrado",
         description: "Papel Fotografico Brillante, tamaño de 5cm a 7cm de alto",
         images: [
           "images/stickers/sticker1.webp",

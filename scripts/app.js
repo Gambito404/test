@@ -121,6 +121,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.innerWidth > 768) {
       setTimeout(loadParticles, 500);
     }
+
+    // SCROLL AUTOMÁTICO: Si hay un hash en la URL (ej. #pines-pequenos), ir al producto
+    if (window.location.hash) {
+      const targetId = window.location.hash.substring(1);
+      // Esperamos un poco a que el DOM termine de acomodarse
+      setTimeout(() => {
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
+    }
   });
 
   // Inyectar HTML de Componentes
@@ -191,6 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ===== LÓGICA DEL CARRITO ===== */
   let cart = JSON.parse(localStorage.getItem("mishiCart")) || [];
+  let favorites = JSON.parse(localStorage.getItem("mishiFavorites")) || [];
 
   const cartFab = document.getElementById("cartFab");
   const cartCount = document.getElementById("cartCount");
@@ -770,6 +783,10 @@ document.addEventListener("DOMContentLoaded", () => {
     section.items.forEach((item) => {
       const card = document.createElement("article");
       card.className = "product-card floating";
+      
+      // Generar ID único para el producto (ej: "Pines pequeños" -> "pines-pequenos")
+      const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+      card.id = productId;
 
       const images = item.images || (item.image ? [item.image] : []);
       const mainImage = images.length > 0 ? images[0] : "";
@@ -785,6 +802,9 @@ document.addEventListener("DOMContentLoaded", () => {
         images.length > 1
           ? `<div class="image-badge">1 / ${images.length}</div>`
           : "";
+      
+      // Verificar si es favorito
+      const isFav = favorites.includes(item.name);
 
       const isLCP = globalImageCounter < 4;
       const loadingAttr = isLCP ? 'loading="eager"' : 'loading="lazy"';
@@ -826,6 +846,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <img src="${mainImage}" class="card-image" alt="${item.name}" width="280" height="220" ${loadingAttr} ${priorityAttr} decoding="async">
           ${controlsHtml}
           ${imageBadge}
+          <button class="share-btn" aria-label="Compartir en WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+            </svg>
+          </button>
+          <button class="fav-btn ${isFav ? 'active' : ''}" aria-label="Añadir a favoritos">♥</button>
         </div>
         <div class="card-body">
           <h3>${item.name}</h3>
@@ -837,6 +863,36 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="btn-contact">Cotizar</button>
         </div>
       `;
+
+      // Lógica del Botón Compartir
+      const shareBtn = card.querySelector(".share-btn");
+      shareBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        
+        const pageUrl = "https://gambito404.github.io/test/"; // URL fija de producción
+        const text = `¡Hola! Mira este producto de Mishi Studio: *${item.name}*\n${item.description}\n\nVer aquí: ${pageUrl}#${productId}`;
+        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+      });
+
+      // Lógica del Botón Favoritos
+      const favBtn = card.querySelector(".fav-btn");
+      favBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Evitar abrir el lightbox
+        const index = favorites.indexOf(item.name);
+        
+        if (index === -1) {
+          favorites.push(item.name);
+          favBtn.classList.add("active");
+          showToast(`❤️ ${item.name} guardado en favoritos`);
+        } else {
+          favorites.splice(index, 1);
+          favBtn.classList.remove("active");
+          showToast(`💔 ${item.name} eliminado de favoritos`);
+        }
+        localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
+        updateFavBadge(true); // true = reproducir sonido
+      });
 
       const contactBtn = card.querySelector(".btn-contact");
       contactBtn.addEventListener("click", () => openModal(item));
@@ -882,6 +938,198 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     container.appendChild(sectionEl);
+  });
+
+  /* ===== SECCIÓN FAVORITOS (NUEVA) ===== */
+  const favSection = document.createElement("section");
+  favSection.className = "catalog-section";
+  favSection.id = "favorites";
+  favSection.style.display = "none"; // Oculta por defecto
+  favSection.innerHTML = `
+    <header class="section-header fade-in-up">
+      <h2>Mis Favoritos ❤️</h2>
+      <p>Tus productos guardados</p>
+    </header>
+    <div class="products-grid" id="favorites-grid"></div>
+    <div id="fav-empty" style="text-align:center; width:100%; display:none; color:#ccc; margin-top:20px;">
+      <p style="font-size: 1.2rem;">No tienes favoritos aún.</p>
+      <p style="font-size: 0.9rem; opacity: 0.7;">¡Dale amor a los productos que te gusten!</p>
+      <button class="btn-contact" style="max-width:200px; margin:30px auto;" id="btn-back-catalog">Ver Catálogo</button>
+    </div>
+  `;
+  container.appendChild(favSection);
+
+  // Función para renderizar favoritos
+  const renderFavorites = () => {
+    const grid = document.getElementById("favorites-grid");
+    const emptyMsg = document.getElementById("fav-empty");
+    grid.innerHTML = "";
+
+    // Actualizar lista desde localStorage
+    favorites = JSON.parse(localStorage.getItem("mishiFavorites")) || [];
+
+    if (favorites.length === 0) {
+      emptyMsg.style.display = "block";
+      return;
+    }
+    emptyMsg.style.display = "none";
+
+    // Buscar objetos completos de productos favoritos
+    const favItems = [];
+    if (typeof catalog !== 'undefined') {
+      catalog.forEach(section => {
+        section.items.forEach(item => {
+          if (favorites.includes(item.name)) {
+            favItems.push({ item, sectionId: section.id });
+          }
+        });
+      });
+    }
+
+    // Reutilizamos la lógica de creación de tarjetas (simplificada para esta vista)
+    favItems.forEach(({ item, sectionId }) => {
+      // Clonamos la lógica visual básica
+      const card = document.createElement("article");
+      card.className = "product-card floating";
+      
+      const images = item.images || (item.image ? [item.image] : []);
+      const mainImage = images.length > 0 ? images[0] : "";
+
+      card.innerHTML = `
+        <div class="card-image-container">
+          <img src="${mainImage}" class="card-image" alt="${item.name}" width="280" height="220" loading="lazy">
+          <button class="share-btn" aria-label="Compartir en WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+            </svg>
+          </button>
+          <button class="fav-btn active" aria-label="Quitar de favoritos">♥</button>
+        </div>
+        <div class="card-body">
+          <h3>${item.name}</h3>
+          <p>${item.description}</p>
+          <button class="btn-contact">Cotizar</button>
+        </div>
+      `;
+
+      // Evento Compartir
+      const shareBtn = card.querySelector(".share-btn");
+      shareBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Generamos el mismo ID que en el catálogo principal
+        const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+        
+        const pageUrl = "https://gambito404.github.io/test/"; // URL fija de producción
+        const text = `¡Hola! Mira este producto de Mishi Studio: *${item.name}*\n${item.description}\n\nVer aquí: ${pageUrl}#${productId}`;
+        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+      });
+
+      // Evento Quitar Favorito
+      const favBtn = card.querySelector(".fav-btn");
+      favBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const index = favorites.indexOf(item.name);
+        if (index > -1) {
+          favorites.splice(index, 1);
+          localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
+          card.style.opacity = "0";
+          card.style.transform = "scale(0.8)";
+          setTimeout(() => renderFavorites(), 300); // Recargar vista
+          showToast(`💔 ${item.name} eliminado`);
+          updateFavBadge(true); // true = reproducir sonido
+        }
+      });
+
+      // Evento Cotizar
+      card.querySelector(".btn-contact").addEventListener("click", () => openModal(item));
+      
+      // Evento Lightbox
+      card.querySelector(".card-image").addEventListener("click", () => openLightbox(images, 0));
+
+      grid.appendChild(card);
+    });
+  };
+
+  // Agregar enlace al Navbar
+  const favLi = document.createElement("li");
+  const favLink = document.createElement("a");
+  favLink.href = "#favorites";
+  favLink.innerHTML = 'Favoritos <span id="favCount" class="nav-badge">0</span>';
+  favLi.appendChild(favLink);
+  navLinks.appendChild(favLi);
+
+  // Generador de sonido "Pop" (Sin archivos externos)
+  const playPopSound = () => {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Frecuencia: Caída rápida de agudo a grave (efecto burbuja/pop)
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+
+    // Volumen: Golpe rápido y desvanecimiento
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  };
+
+  const updateFavBadge = (playSound = false) => {
+    const badge = document.getElementById("favCount");
+    if (badge) {
+      badge.textContent = favorites.length;
+      badge.style.display = favorites.length > 0 ? "inline-flex" : "none";
+      
+      if (favorites.length > 0) {
+        if (playSound) playPopSound();
+      }
+    }
+  };
+  updateFavBadge(false); // Ejecutar al inicio (sin sonido)
+
+  // Evento Click en "Favoritos"
+  favLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    // Ocultar secciones normales
+    document.querySelectorAll(".catalog-section:not(#favorites)").forEach(el => el.style.display = 'none');
+    // Mostrar favoritos
+    favSection.style.display = "block";
+    renderFavorites();
+    
+    // Actualizar estado visual del menú
+    document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
+    favLink.classList.add("active");
+    
+    // Cerrar menú móvil
+    navLinks.classList.remove("active");
+    const toggleBtn = document.querySelector(".menu-toggle");
+    if (toggleBtn) toggleBtn.innerHTML = "☰";
+
+    window.scrollTo(0, 0);
+  });
+
+  // Volver al catálogo desde "Favoritos vacíos"
+  document.getElementById("btn-back-catalog").addEventListener("click", () => {
+    window.location.reload();
+  });
+
+  // Restaurar vista normal al hacer clic en otras secciones
+  document.querySelectorAll(".nav-links a:not([href='#favorites'])").forEach(link => {
+    link.addEventListener("click", () => {
+      favSection.style.display = "none";
+      // Restaurar visibilidad según el filtro actual
+      updateFilterState(); 
+    });
   });
 
   /* ===== BOTÓN DE INSTALACIÓN PWA ===== */
