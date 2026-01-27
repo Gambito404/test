@@ -71,7 +71,6 @@ const catalog = [
         images: [
           "images/llaveros/llavero-destapador.webp",
           "images/llaveros/llavero-destapador1.webp",
-          "images/llaveros/llavero-destapador2.webp",
           "images/llaveros/llavero-destapador3.webp",
           "images/llaveros/llavero-destapador4.webp",
           "images/llaveros/llavero-destapador5.webp",
@@ -120,14 +119,17 @@ const catalog = [
         ],
       },
       {
-        name: "Llavero Corazon",
-        description: "Llavero con forma de corazón, tamaño 58mm",
+        name: "Llavero Acrilico Corazon",
+        description: "Medida de 5cm x 5cm, diseño en forma de corazón",
         images: [
           "images/llaveros/llavero-corazon.webp",
-         
+          "images/llaveros/llavero-corazon1.webp",
+          "images/llaveros/llavero-corazon2.webp",
+          "images/llaveros/llavero-corazon3.webp",
+          "images/llaveros/llavero-corazon4.webp",
         ],
         prices: [
-          { quantity: 1, price: 6 },
+          { quantity: 1, price: 7 },
           { quantity: 12, price: 60 },
           { quantity: 50, price: 225 },
           { quantity: 100, price: 400 },
