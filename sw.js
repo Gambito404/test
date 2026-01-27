@@ -1,4 +1,4 @@
-const CACHE_NAME = "mishi-v2.0.4";
+const CACHE_NAME = "mishi-v2.1.2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -37,7 +37,8 @@ self.addEventListener("fetch", (e) => {
   // 1. ESTRATEGIA "NETWORK FIRST" (Primero Internet)
   // Para archivos críticos: HTML (navegación) y data.js (precios).
   // Intentamos obtener lo más nuevo. Si falla (offline), usamos lo guardado.
-  if (e.request.mode === 'navigate' || url.pathname.endsWith('data.js')) {
+  // AHORA INCLUIMOS style.css y app.js para que los cambios de diseño se vean al instante
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('data.js') || url.pathname.endsWith('style.css') || url.pathname.endsWith('app.js')) {
     e.respondWith(
       fetch(e.request.url, { cache: 'reload' }) // Forzar red ignorando caché HTTP del navegador
         .then((networkResponse) => {

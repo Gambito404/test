@@ -16,9 +16,9 @@
 
 html {
   background-color: #0f0c29;
-  scrollbar-width: auto; /* Visible en Firefox/Android moderno */
-  scrollbar-color: var(--primary) #0f0c29;
-  overflow-y: scroll; /* Forzar barra siempre visible */
+  scrollbar-width: none; /* Ocultar barra nativa (Firefox) */
+  -ms-overflow-style: none; /* Ocultar barra nativa (IE/Edge) */
+  overflow-x: hidden;
 }
 
 body {
@@ -26,7 +26,8 @@ body {
   background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
   color: var(--dark);
   line-height: 1.6;
-  overflow-x: hidden;
+  height: auto; /* Dejamos que el cuerpo crezca con el contenido */
+  min-height: 100vh;
 }
 
 /* ===== PANTALLA DE CARGA ===== */
@@ -68,14 +69,37 @@ body {
 .loader-logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
 
 /* ===== SCROLLBAR PERSONALIZADO ===== */
-::-webkit-scrollbar { width: 12px; }
-::-webkit-scrollbar-track { background: #1a1a2e; } /* Fondo sólido para evitar superposición */
-::-webkit-scrollbar-thumb { 
-  background: var(--primary); 
-  border-radius: 6px; 
-  border: 3px solid #0f0c29;
+/* 1. Ocultar barra nativa en WebKit (Chrome/Safari) */
+html::-webkit-scrollbar {
+  display: none;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* 2. Estilos de nuestra barra JS "Falsa" */
+#custom-scrollbar-track {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 10px; /* Ancho cómodo para móvil */
+  height: 100%;
+  background: rgba(26, 26, 46, 0.5); /* Fondo semitransparente */
+  z-index: 9999;
+}
+
+#custom-scrollbar-thumb {
+  position: absolute;
+  right: 0;
+  width: 100%;
+  background: var(--primary);
+  border-radius: 10px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+#custom-scrollbar-thumb:active, #custom-scrollbar-thumb:hover {
+  background: var(--accent);
+  opacity: 1;
+}
 
 /* ===== PARTICULAS ===== */
 #particles-js {

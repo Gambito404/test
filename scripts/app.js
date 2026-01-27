@@ -658,9 +658,13 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleBtn.innerHTML = navLinks.classList.contains("active") ? "✕" : "☰";
     });
 
-    window.addEventListener("scroll", () => {
-      navbar.classList.toggle("scrolled", window.scrollY > 50);
-    });
+    // Detectar scroll en el contenedor que corresponda (body o window)
+    const onScroll = () => {
+      const scrollY = window.scrollY || document.body.scrollTop || document.documentElement.scrollTop;
+      navbar.classList.toggle("scrolled", scrollY > 50);
+    };
+    window.addEventListener("scroll", onScroll);
+    document.body.addEventListener("scroll", onScroll); // Escuchar scroll del body
 
     navbar.insertBefore(toggleBtn, navLinks);
   }
@@ -915,4 +919,95 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.reload();
     });
   }
+
+  /* ===== CUSTOM SCROLLBAR (LA TRAMPITA JS) ===== */
+  // 1. Crear e inyectar los elementos HTML
+  const scrollTrack = document.createElement('div');
+  scrollTrack.id = 'custom-scrollbar-track';
+  const scrollThumb = document.createElement('div');
+  scrollThumb.id = 'custom-scrollbar-thumb';
+  scrollTrack.appendChild(scrollThumb);
+  document.body.appendChild(scrollTrack);
+
+  // 2. Función para actualizar posición y tamaño
+  const updateScrollThumb = () => {
+    const docHeight = document.documentElement.scrollHeight;
+    const winHeight = window.innerHeight;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    
+    // Calcular altura del pulgar (mínimo 50px para que sea tocable)
+    let thumbHeight = Math.max((winHeight / docHeight) * winHeight, 50); 
+    
+    // Calcular posición top
+    const maxScrollTop = docHeight - winHeight;
+    const maxThumbTop = winHeight - thumbHeight;
+    
+    let thumbTop = 0;
+    if (maxScrollTop > 0) {
+        thumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
+    }
+
+    scrollThumb.style.height = `${thumbHeight}px`;
+    scrollThumb.style.transform = `translateY(${thumbTop}px)`;
+    
+    // Ocultar si no hay scroll
+    scrollTrack.style.display = docHeight <= winHeight ? 'none' : 'block';
+  };
+
+  // 3. Escuchar eventos para sincronizar
+  window.addEventListener('scroll', updateScrollThumb);
+  window.addEventListener('resize', updateScrollThumb);
+  
+  // Detectar cambios en el tamaño del contenido (imágenes cargando, filtros, etc.)
+  const resizeObserver = new ResizeObserver(() => updateScrollThumb());
+  resizeObserver.observe(document.body);
+
+  // 4. Permitir arrastrar la barra (Drag & Drop)
+  let isDragging = false;
+  let startY = 0;
+  let startScrollTop = 0;
+
+  const startDrag = (clientY) => {
+    isDragging = true;
+    startY = clientY;
+    startScrollTop = window.scrollY || document.documentElement.scrollTop;
+    document.body.style.userSelect = 'none'; // Evitar seleccionar texto
+  };
+
+  const onDrag = (clientY) => {
+    if (!isDragging) return;
+    const winHeight = window.innerHeight;
+    const docHeight = document.documentElement.scrollHeight;
+    const thumbHeight = scrollThumb.offsetHeight;
+    const maxThumbTop = winHeight - thumbHeight;
+    const maxScrollTop = docHeight - winHeight;
+
+    const deltaY = clientY - startY;
+    const scrollDelta = (deltaY / maxThumbTop) * maxScrollTop;
+    
+    window.scrollTo(0, startScrollTop + scrollDelta);
+  };
+
+  const stopDrag = () => {
+    isDragging = false;
+    document.body.style.userSelect = '';
+  };
+
+  // Eventos Mouse (PC)
+  scrollThumb.addEventListener('mousedown', (e) => startDrag(e.clientY));
+  document.addEventListener('mousemove', (e) => onDrag(e.clientY));
+  document.addEventListener('mouseup', stopDrag);
+
+  // Eventos Touch (Móvil)
+  scrollThumb.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Evitar comportamientos raros
+    startDrag(e.touches[0].clientY);
+  }, { passive: false });
+  
+  document.addEventListener('touchmove', (e) => {
+    if(isDragging) e.preventDefault();
+    onDrag(e.touches[0].clientY);
+  }, { passive: false });
+  
+  document.addEventListener('touchend', stopDrag);
 });
