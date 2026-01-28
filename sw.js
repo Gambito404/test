@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.4.2";
+const CACHE_NAME = "mishi-v3.4.3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,7 +8,7 @@ const ASSETS = [
   "./styles/style.css",
   "./images/logo.webp",
   "./images/icon.webp",
-  "./images/dribbble_1.gif",
+  "./images/cavernicola.gif",
   "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
 ];
 
