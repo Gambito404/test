@@ -94,14 +94,19 @@ body {
 .offline-content { padding: 20px; max-width: 400px; }
 
 .offline-img {
-  width: 150px;
+  width: 300px;
+  max-width: 80%;
   height: auto;
   margin-bottom: 20px;
   filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
 }
 
-.offline-content h2 { color: var(--accent); margin-bottom: 10px; font-size: 1.8rem; }
-.offline-content p { color: #ccc; margin-bottom: 20px; }
+.offline-content h2 { color: var(--accent); margin-bottom: 10px; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
+.offline-content p { 
+  color: #ccc; 
+  margin-bottom: 25px; 
+  font-size: 1.1rem;
+}
 
 .offline-content button { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
 .offline-content button:hover { transform: scale(1.05); }
