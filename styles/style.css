@@ -1320,6 +1320,56 @@ footer::before {
   opacity: 1;
 }
 
+/* ===== NOTIFICACIÓN DE ACTUALIZACIÓN ===== */
+.update-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 12, 41, 0.95);
+  color: #fff;
+  padding: 15px 25px;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 3000;
+  border: 1px solid var(--accent);
+  animation: slideUp 0.5s ease-out;
+  backdrop-filter: blur(10px);
+  width: 90%;
+  max-width: 400px;
+  justify-content: space-between;
+}
+
+.update-notification span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.update-notification button {
+  background: var(--accent);
+  border: none;
+  padding: 8px 15px;
+  border-radius: 20px;
+  color: var(--dark);
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: transform 0.2s;
+}
+
+.update-notification button:hover {
+  transform: scale(1.05);
+}
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 100px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
 /* ===== BOTÓN VOLVER ARRIBA ===== */
 #scrollTopBtn {
   position: fixed;

@@ -19,6 +19,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (footer) footer.style.opacity = 1;
   };
 
+  /* ===== FUNCIÓN HELPER: TOAST NOTIFICATION ===== */
+  const showToast = (message) => {
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = `✅ ${message}`;
+    document.body.appendChild(toast);
+
+    // Forzar reflow para la animación
+    toast.offsetHeight; 
+    toast.classList.add("show");
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 400);
+    }, 3000);
+  };
+
   /* ===== CARGAR DATOS DE GOOGLE SHEETS ===== */
   // Variable global del catálogo
   let catalog = [];
@@ -667,22 +684,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       result.price = priceData.price;
     }
     return result;
-  };
-
-  const showToast = (message) => {
-    const toast = document.createElement("div");
-    toast.className = "toast";
-    toast.innerHTML = `✅ ${message}`;
-    document.body.appendChild(toast);
-
-    // Forzar reflow para la animación
-    toast.offsetHeight; 
-    toast.classList.add("show");
-
-    setTimeout(() => {
-      toast.classList.remove("show");
-      setTimeout(() => toast.remove(), 400);
-    }, 3000);
   };
 
   addToCartBtn.addEventListener("click", () => {
@@ -1402,90 +1403,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener('touchend', stopDrag);
 
   /* ===== AUTO UPDATE (POLLING 10s) ===== */
+  let updateNotificationShown = false; // Evitar mostrar el aviso múltiples veces
+
   const checkForUpdates = async () => {
+    if (updateNotificationShown) return; // Si ya avisamos, no seguimos comprobando
+
     const newCatalog = await loadCatalogData();
+    
+    // Si falló la carga o vino vacío (posible error de red), ignoramos para no dar falsos positivos
     if (!newCatalog || newCatalog.length === 0) return;
 
-    let hasNew = false;
+    // Comparación profunda simple: Convertimos todo a texto y comparamos
+    const currentData = JSON.stringify(catalog);
+    const newData = JSON.stringify(newCatalog);
 
-    newCatalog.forEach(newSection => {
-      const oldSection = catalog.find(s => s.id === newSection.id);
-      
-      if (!oldSection) {
-        // Nueva Sección detectada
-        renderSection(newSection);
-        catalog.push(newSection);
-        hasNew = true;
-      } else {
-        // Revisar items dentro de la sección
-        newSection.items.forEach(newItem => {
-          const oldItem = oldSection.items.find(i => i.name === newItem.name);
-          
-          if (!oldItem) {
-            // Nuevo Producto detectado
-            const card = createProductCard(newItem);
-            const sectionEl = document.getElementById(newSection.id);
-            if (sectionEl) {
-                const grid = sectionEl.querySelector(".products-grid");
-                grid.appendChild(card);
-                // Animación de entrada
-                card.classList.add("fade-in-up", "is-visible"); 
-            }
-            oldSection.items.push(newItem);
-            hasNew = true;
-          } else {
-            // Producto existente: Verificar cambios (Precio, Desc, Imagen)
-            const oldData = JSON.stringify({ p: oldItem.prices, d: oldItem.description });
-            const newData = JSON.stringify({ p: newItem.prices, d: newItem.description });
-            
-            const oldImgs = JSON.stringify({ i: oldItem.image, imgs: oldItem.images });
-            const newImgs = JSON.stringify({ i: newItem.image, imgs: newItem.images });
-
-            const productId = newItem.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
-            const oldCard = document.getElementById(productId);
-
-            if (oldCard) {
-                // CASO 1: Cambiaron las imágenes (Requiere reemplazo cuidadoso)
-                if (oldImgs !== newImgs) {
-                    const newCard = createProductCard(newItem, true);
-                    newCard.className = oldCard.className;
-                    
-                    const tempImg = new Image();
-                    const imgUrl = newItem.image || (newItem.images && newItem.images[0]);
-                    
-                    if (imgUrl) {
-                        tempImg.src = imgUrl;
-                        tempImg.onload = () => oldCard.replaceWith(newCard);
-                        tempImg.onerror = () => oldCard.replaceWith(newCard);
-                    } else {
-                        oldCard.replaceWith(newCard);
-                    }
-                    Object.assign(oldItem, newItem);
-                } 
-                // CASO 2: Solo cambió Precio o Descripción (Parcheo directo sin parpadeo)
-                else if (oldData !== newData) {
-                    // Actualizar Descripción
-                    const descEl = oldCard.querySelector('.card-body p');
-                    if (descEl) descEl.textContent = newItem.description;
-
-                    // Actualizar Tabla de Precios
-                    const priceContainer = oldCard.querySelector('.pricing-container');
-                    if (priceContainer) {
-                        priceContainer.innerHTML = generatePriceTableHtml(newItem.prices);
-                    }
-
-                    // Actualizar memoria
-                    Object.assign(oldItem, newItem);
-                }
-            }
-          }
-        });
-      }
-    });
-
-    if (hasNew) {
-        showToast("✨ Nuevos productos disponibles");
+    if (currentData !== newData) {
+        updateNotificationShown = true;
+        showUpdateNotification();
     }
+  };
+
+  const showUpdateNotification = () => {
+    const notification = document.createElement("div");
+    notification.className = "update-notification";
+    notification.innerHTML = `
+      <span>🔄 Hay nuevos productos o precios disponibles.</span>
+      <button onclick="window.location.reload()">Actualizar</button>
+    `;
+    document.body.appendChild(notification);
   };
 
   setInterval(checkForUpdates, 10000); // Revisar cada 10 segundos
