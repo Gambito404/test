@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   /* ===== CARGAR DATOS DE GOOGLE SHEETS ===== */
-  // Variable global del catálogo
   let catalog = [];
 
   const loadCatalogData = async () => {
@@ -47,8 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const PRICES_SHEET = "Precios";
 
     try {
-      // Usamos { cache: 'reload' } para obligar al navegador a ignorar el caché
-      // y descargar datos frescos, sin romper la URL con parámetros extra.
       const fetchOptions = { cache: 'reload' };
 
       const [productsRes, imagesRes, pricesRes] = await Promise.all([
@@ -65,24 +62,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       const imagesData = await imagesRes.json();
       const pricesData = await pricesRes.json();
 
-      // 2. Process images and prices into Maps for quick lookup
       const imagesMap = new Map();
-      let currentImgId = null; // Variable para recordar el ID anterior (Fill-Down)
+      let currentImgId = null;
 
       imagesData.forEach(row => {
-        // Detectar ID (Soportar mayúsculas/minúsculas y celdas vacías)
         const rawId = row.id_producto || row.Id_producto;
         if (rawId && String(rawId).trim() !== "") {
             currentImgId = String(rawId).trim();
         }
 
-        if (!currentImgId) return; // Si no hay ID actual, saltamos
+        if (!currentImgId) return;
 
         if (!imagesMap.has(currentImgId)) {
           imagesMap.set(currentImgId, []);
         }
         
-        // Detectar URL (Soportar 'url_imagen' o 'Imagenes')
         let imageUrl = row.url_imagen || row.Imagenes || "";
         
         if (imageUrl && String(imageUrl).trim() !== "") {
@@ -91,14 +85,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 try {
                     const driveId = imageUrl.split('/file/d/')[1].split('/')[0];
                     imageUrl = `https://lh3.googleusercontent.com/d/${driveId}`;
-                } catch(e) { /* keep original on error */ }
+                } catch(e) {}
             }
             imagesMap.get(currentImgId).push(imageUrl);
         }
       });
 
       const pricesMap = new Map();
-      let currentPriceId = null; // Variable para recordar el ID anterior (Fill-Down)
+      let currentPriceId = null;
 
       pricesData.forEach(row => {
         const rawId = row.id_producto || row.Id_producto;
@@ -112,7 +106,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           pricesMap.set(currentPriceId, []);
         }
         
-        // Soportar mayúsculas/minúsculas en Cantidad y Precio
         const quantity = parseInt(row.cantidad || row.Cantidad || row.Cantidades);
         const price = parseFloat(row.precio || row.Precio || row.Precios);
         
@@ -121,12 +114,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
 
-      // 3. Build the final catalog structure
       const newCatalog = [];
       let currentSection = null;
 
       productsData.forEach(row => {
-        // Detect Category
         const catId = row.Categoria;
         if (catId && String(catId).trim() !== "") {
           currentSection = {
@@ -138,7 +129,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           newCatalog.push(currentSection);
         }
 
-        // Detect Product
         const prodName = row.Nombre_Producto;
         const prodId = row.Id_producto;
         if (prodName && prodId && String(prodName).trim() !== "") {
@@ -173,7 +163,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  // Carga Inicial
   const initialData = await loadCatalogData();
   if (initialData.length > 0) catalog = initialData;
 
@@ -896,7 +885,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ===== FUNCIÓN HELPER: CREAR TARJETA DE PRODUCTO ===== */
   const createProductCard = (item, forceEager = false) => {
       const card = document.createElement("article");
-      card.className = "product-card"; // Quitamos 'floating' por defecto para evitar glitches
+      card.className = "product-card";
       
       const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
       card.id = productId;
@@ -1023,7 +1012,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ===== FUNCIÓN HELPER: RENDERIZAR SECCIÓN ===== */
   const renderSection = (section) => {
-    // 1. Crear Link en Navbar
     const li = document.createElement("li");
     const link = document.createElement("a");
     link.href = `#${section.id}`;
@@ -1038,7 +1026,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     li.appendChild(link);
     navLinks.appendChild(li);
 
-    // 2. Crear Sección HTML
     const sectionEl = document.createElement("section");
     sectionEl.className = "catalog-section";
     sectionEl.id = section.id;
@@ -1053,17 +1040,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const grid = sectionEl.querySelector(".products-grid");
 
-    // 3. Crear Tarjetas
     section.items.forEach((item) => {
       const card = createProductCard(item);
-      card.classList.add("floating"); // Agregamos la animación aquí, una vez insertado
+      card.classList.add("floating");
       grid.appendChild(card);
     });
 
     container.appendChild(sectionEl);
   };
 
-  // Renderizado Inicial
   catalog.forEach((section) => renderSection(section));
 
   /* ===== SECCIÓN FAVORITOS (NUEVA) ===== */
@@ -1231,12 +1216,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   installLi.appendChild(installBtn);
   navLinks.appendChild(installLi);
 
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-    installLi.style.display = "none";
-  }
-
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
+  // Si ya está instalada, no hacemos nada, el botón se queda oculto.
+  if (isStandalone) return;
+
+  // En iOS, no hay evento 'beforeinstallprompt', así que mostramos el botón
+  // con instrucciones si no está instalada.
+  if (isIos) {
+    installLi.style.display = "block";
+  }
+
+  // Para Android y Desktop, esperamos el evento que dispara el navegador.
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -1246,16 +1238,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   installBtn.addEventListener("click", (e) => {
     e.preventDefault();
+    // Lógica para Android/Desktop
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then((choiceResult) => {
         installLi.style.display = "none";
         deferredPrompt = null; 
       });
-    } else if (isIos) {
+    } 
+    // Lógica para iOS (muestra un simple aviso)
+    else if (isIos) {
       alert("Para instalar en iPhone/iPad:\n1. Toca el botón 'Compartir' (cuadrado con flecha hacia arriba) en la barra inferior.\n2. Busca y selecciona la opción 'Agregar al inicio'.");
-    } else {
-      alert("⚠️ Error de PWA detectado:\nTu imagen 'logo.webp' no tiene el tamaño correcto.\n\nSolución:\nUsa una imagen cuadrada exacta (ej. 512x512) o el navegador bloqueará la instalación.");
     }
   });
 
@@ -1403,17 +1396,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.addEventListener('touchend', stopDrag);
 
   /* ===== AUTO UPDATE (POLLING 10s) ===== */
-  let updateNotificationShown = false; // Evitar mostrar el aviso múltiples veces
+  let updateNotificationShown = false;
 
   const checkForUpdates = async () => {
-    if (updateNotificationShown) return; // Si ya avisamos, no seguimos comprobando
+    if (updateNotificationShown) return;
 
     const newCatalog = await loadCatalogData();
     
-    // Si falló la carga o vino vacío (posible error de red), ignoramos para no dar falsos positivos
     if (!newCatalog || newCatalog.length === 0) return;
 
-    // Comparación profunda simple: Convertimos todo a texto y comparamos
     const currentData = JSON.stringify(catalog);
     const newData = JSON.stringify(newCatalog);
 
@@ -1433,5 +1424,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.body.appendChild(notification);
   };
 
-  setInterval(checkForUpdates, 10000); // Revisar cada 10 segundos
+  setInterval(checkForUpdates, 10000);
 });

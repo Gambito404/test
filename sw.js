@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.3.22";
+const CACHE_NAME = "mishi-v3.4.1";
 const ASSETS = [
   "./images/logo.webp",
   "./images/dribbble_1.gif",
@@ -91,30 +91,24 @@ self.addEventListener("fetch", (e) => {
 
   if (url.pathname.endsWith('data.js') || url.pathname.endsWith('style.css') || url.pathname.endsWith('app.js')) {
     e.respondWith(
-      // Intentamos recargar, pero si falla (offline), usamos el caché
       fetch(e.request.url, { cache: 'reload' }).catch(() => caches.match(e.request))
     );
     return;
   }
 
   // Estrategia Network First para la API (Google Sheets)
-  // Esto obliga a la app a buscar datos nuevos en internet primero.
   if (url.hostname.includes('opensheet.elk.sh')) {
-    // TRUCO: Creamos una nueva petición forzando 'reload' para saltar el caché interno del navegador móvil
     const networkRequest = new Request(e.request, { cache: 'reload' });
 
     e.respondWith(
       fetch(networkRequest).then((networkResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
-          // OPTIMIZACIÓN: Guardamos en caché usando la URL "limpia" (sin el ?t=...)
-          // Así evitamos llenar la memoria con múltiples copias del mismo archivo.
           const cleanUrl = new URL(e.request.url);
           cleanUrl.search = ''; 
           cache.put(cleanUrl.toString(), networkResponse.clone());
           return networkResponse;
         });
       }).catch(() => {
-        // Si falla internet, buscamos la versión limpia en el caché
         const cleanUrl = new URL(e.request.url);
         cleanUrl.search = '';
         return caches.match(cleanUrl.toString());

@@ -203,7 +203,6 @@ html::-webkit-scrollbar {
   width: 100%;
 }
 
-/* Badge contador de favoritos en menú */
 .nav-badge {
   background: var(--accent);
   color: var(--dark);
