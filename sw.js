@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.3.16";
+const CACHE_NAME = "mishi-v3.3.18";
 const ASSETS = [
   "./images/logo.webp",
   "./images/dribbble_1.gif",
@@ -91,7 +91,8 @@ self.addEventListener("fetch", (e) => {
 
   if (url.pathname.endsWith('data.js') || url.pathname.endsWith('style.css') || url.pathname.endsWith('app.js')) {
     e.respondWith(
-      fetch(e.request.url, { cache: 'reload' })
+      // Intentamos recargar, pero si falla (offline), usamos el caché
+      fetch(e.request.url, { cache: 'reload' }).catch(() => caches.match(e.request))
     );
     return;
   }
@@ -99,8 +100,11 @@ self.addEventListener("fetch", (e) => {
   // Estrategia Network First para la API (Google Sheets)
   // Esto obliga a la app a buscar datos nuevos en internet primero.
   if (url.hostname.includes('opensheet.elk.sh')) {
+    // TRUCO: Creamos una nueva petición forzando 'reload' para saltar el caché interno del navegador móvil
+    const networkRequest = new Request(e.request, { cache: 'reload' });
+
     e.respondWith(
-      fetch(e.request).then((networkResponse) => {
+      fetch(networkRequest).then((networkResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
           cache.put(e.request, networkResponse.clone());
           return networkResponse;

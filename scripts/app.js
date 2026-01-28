@@ -20,10 +20,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   /* ===== CARGAR DATOS DE GOOGLE SHEETS ===== */
-  // El catálogo se cargará exclusivamente desde Google Sheets.
+  // Variable global del catálogo
   let catalog = [];
 
-  const fetchCatalogFromSheets = async () => {
+  const loadCatalogData = async () => {
     const SHEET_ID = "19AIPO8SiAsRgC16cM37sIWKME3VPxefgFyUskJXX5z8";
     const PRODUCTS_SHEET = "Productos";
     const IMAGES_SHEET = "Imagenes";
@@ -143,16 +143,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       if (newCatalog.length > 0) {
-        catalog = newCatalog; // Reemplazamos el catálogo con los datos de la nube.
+        return newCatalog;
       }
+      return [];
 
     } catch (error) {
       console.error("❌ Error crítico al cargar el catálogo desde Excel. La tienda no mostrará productos.", error);
+      return [];
     }
   };
 
-  // Esperamos a que carguen los datos antes de construir la página
-  await fetchCatalogFromSheets();
+  // Carga Inicial
+  const initialData = await loadCatalogData();
+  if (initialData.length > 0) catalog = initialData;
 
   const preloadResources = async () => {
     const imageUrls = [];
@@ -856,38 +859,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let globalImageCounter = 0;
 
-  catalog.forEach((section) => {
-    /* ===== NAVBAR ===== */
-    const li = document.createElement("li");
-    const link = document.createElement("a");
-    link.href = `#${section.id}`;
-    link.textContent = section.title;
-
-    link.addEventListener("click", () => {
-      navLinks.classList.remove("active");
-      const toggleBtn = document.querySelector(".menu-toggle");
-      if (toggleBtn) toggleBtn.innerHTML = "☰";
-    });
-
-    li.appendChild(link);
-    navLinks.appendChild(li);
-
-    /* ===== SECCIÓN ===== */
-    const sectionEl = document.createElement("section");
-    sectionEl.className = "catalog-section";
-    sectionEl.id = section.id;
-
-    sectionEl.innerHTML = `
-      <header class="section-header fade-in-up">
-        <h2>${section.title}</h2>
-        <p>${section.subtitle}</p>
-      </header>
-      <div class="products-grid"></div>
-    `;
-
-    const grid = sectionEl.querySelector(".products-grid");
-
-    section.items.forEach((item) => {
+  /* ===== FUNCIÓN HELPER: CREAR TARJETA DE PRODUCTO ===== */
+  const createProductCard = (item) => {
       const card = document.createElement("article");
       card.className = "product-card floating";
       
@@ -1037,11 +1010,52 @@ document.addEventListener("DOMContentLoaded", async () => {
         openLightbox(images, currentIndex);
       });
 
+      return card;
+  };
+
+  /* ===== FUNCIÓN HELPER: RENDERIZAR SECCIÓN ===== */
+  const renderSection = (section) => {
+    // 1. Crear Link en Navbar
+    const li = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = `#${section.id}`;
+    link.textContent = section.title;
+
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("active");
+      const toggleBtn = document.querySelector(".menu-toggle");
+      if (toggleBtn) toggleBtn.innerHTML = "☰";
+    });
+
+    li.appendChild(link);
+    navLinks.appendChild(li);
+
+    // 2. Crear Sección HTML
+    const sectionEl = document.createElement("section");
+    sectionEl.className = "catalog-section";
+    sectionEl.id = section.id;
+
+    sectionEl.innerHTML = `
+      <header class="section-header fade-in-up">
+        <h2>${section.title}</h2>
+        <p>${section.subtitle}</p>
+      </header>
+      <div class="products-grid"></div>
+    `;
+
+    const grid = sectionEl.querySelector(".products-grid");
+
+    // 3. Crear Tarjetas
+    section.items.forEach((item) => {
+      const card = createProductCard(item);
       grid.appendChild(card);
     });
 
     container.appendChild(sectionEl);
-  });
+  };
+
+  // Renderizado Inicial
+  catalog.forEach((section) => renderSection(section));
 
   /* ===== SECCIÓN FAVORITOS (NUEVA) ===== */
   const favSection = document.createElement("section");
@@ -1378,4 +1392,69 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, { passive: false });
   
   document.addEventListener('touchend', stopDrag);
+
+  /* ===== AUTO UPDATE (POLLING 10s) ===== */
+  const checkForUpdates = async () => {
+    const newCatalog = await loadCatalogData();
+    if (!newCatalog || newCatalog.length === 0) return;
+
+    let hasNew = false;
+
+    newCatalog.forEach(newSection => {
+      const oldSection = catalog.find(s => s.id === newSection.id);
+      
+      if (!oldSection) {
+        // Nueva Sección detectada
+        renderSection(newSection);
+        catalog.push(newSection);
+        hasNew = true;
+      } else {
+        // Revisar items dentro de la sección
+        newSection.items.forEach(newItem => {
+          const oldItem = oldSection.items.find(i => i.name === newItem.name);
+          
+          if (!oldItem) {
+            // Nuevo Producto detectado
+            const card = createProductCard(newItem);
+            const sectionEl = document.getElementById(newSection.id);
+            if (sectionEl) {
+                const grid = sectionEl.querySelector(".products-grid");
+                grid.appendChild(card);
+                // Animación de entrada
+                card.classList.add("fade-in-up", "is-visible"); 
+            }
+            oldSection.items.push(newItem);
+            hasNew = true;
+          } else {
+            // Producto existente: Verificar cambios (Precio, Desc, Imagen)
+            const relevantOld = JSON.stringify({
+                p: oldItem.prices, d: oldItem.description, i: oldItem.image, imgs: oldItem.images 
+            });
+            const relevantNew = JSON.stringify({
+                p: newItem.prices, d: newItem.description, i: newItem.image, imgs: newItem.images 
+            });
+
+            if (relevantOld !== relevantNew) {
+                // Cambio detectado -> Repintar tarjeta (Silencioso)
+                const productId = newItem.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+                const oldCard = document.getElementById(productId);
+                if (oldCard) {
+                    const newCard = createProductCard(newItem);
+                    if (oldCard.classList.contains("floating")) newCard.classList.add("floating");
+                    oldCard.replaceWith(newCard);
+                }
+                // Actualizar datos en memoria
+                Object.assign(oldItem, newItem);
+            }
+          }
+        });
+      }
+    });
+
+    if (hasNew) {
+        showToast("✨ Nuevos productos disponibles");
+    }
+  };
+
+  setInterval(checkForUpdates, 10000); // Revisar cada 10 segundos
 });
