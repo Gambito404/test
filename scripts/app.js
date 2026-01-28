@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Si el botón ya existe (se creó tarde), lo mostramos ahora
     const installLi = document.getElementById("pwa-install-li");
     if (installLi) installLi.style.display = "block";
-    console.log("✅ PWA lista para instalar (Evento capturado)");
   });
 
   if (mainContent) mainContent.style.opacity = 0;
