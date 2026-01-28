@@ -3,6 +3,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const mainContent = document.querySelector('main');
   const footer = document.querySelector('footer');
 
+  /* ===== PWA INSTALL EVENT (Capturar inmediatamente) ===== */
+  let deferredPrompt; // Variable global para guardar el evento
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Si el botón ya existe (se creó tarde), lo mostramos ahora
+    const installLi = document.getElementById("pwa-install-li");
+    if (installLi) installLi.style.display = "block";
+    console.log("✅ PWA lista para instalar (Evento capturado)");
+  });
+
   if (mainContent) mainContent.style.opacity = 0;
   if (footer) footer.style.opacity = 0;
 
@@ -1207,8 +1218,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ===== BOTÓN DE INSTALACIÓN PWA ===== */
   const setupInstallButton = () => {
-    let deferredPrompt;
     const installLi = document.createElement("li");
+    installLi.id = "pwa-install-li"; // ID para encontrarlo desde el evento global
     const installBtn = document.createElement("a");
     installBtn.href = "#";
     installBtn.innerHTML = "📲 INSTALAR APP";
@@ -1228,12 +1239,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       installLi.style.display = "block";
     }
 
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
+    // Si el evento ocurrió antes de llegar aquí, mostramos el botón ahora
+    if (deferredPrompt) {
       installLi.style.display = "block";
-      console.log("✅ PWA lista para instalar");
-    });
+    }
 
     installBtn.addEventListener("click", (e) => {
       e.preventDefault();
