@@ -1,7 +1,13 @@
 
 const CACHE_NAME = "mishi-v3.4.1";
 const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./scripts/app.js",
+  "./styles/style.css",
   "./images/logo.webp",
+  "./images/icon.webp",
   "./images/dribbble_1.gif",
   "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
 ];
@@ -33,57 +39,12 @@ self.addEventListener("fetch", (e) => {
 
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request.url, { cache: 'reload' }) 
+      // Intenta obtener la página de la red.
+      fetch(e.request)
         .catch(() => {
-          return new Response(
-            `<!DOCTYPE html>
-            <html lang="es">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Sin Conexión - Mishi Studio</title>
-              <style>
-                body {
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  height: 100vh;
-                  margin: 0;
-                  background: #fff;
-                  font-family: 'Montserrat', sans-serif;
-                  text-align: center;
-                  color: #2d3436;
-                }
-                img {
-                  max-width: 100%;
-                  height: auto;
-                  max-height: 400px;
-                }
-                h3 { font-size: 2rem; margin: 20px 0 10px; }
-                p { font-size: 1.2rem; color: #636e72; margin-bottom: 30px; }
-                button {
-                  padding: 12px 30px;
-                  background: #39ac31;
-                  color: white;
-                  border: none;
-                  border-radius: 5px;
-                  font-size: 1rem;
-                  cursor: pointer;
-                  font-weight: bold;
-                  box-shadow: 0 5px 15px rgba(57, 172, 49, 0.4);
-                }
-              </style>
-            </head>
-            <body>
-              <img src="./images/dribbble_1.gif" alt="Cavernícola">
-              <h3>¡Sin Conexión!</h3>
-              <p>El cavernícola mordió el cable de internet.</p>
-              <button onclick="window.location.reload()">Reintentar</button>
-            </body>
-            </html>`,
-            { headers: { 'Content-Type': 'text/html' } }
-          );
+          // Si la red falla, se sirve el index.html desde el caché.
+          // Esto es crucial para la experiencia offline de la PWA.
+          return caches.match('./index.html');
         })
     );
     return;

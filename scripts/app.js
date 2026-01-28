@@ -1206,57 +1206,55 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   /* ===== BOTÓN DE INSTALACIÓN PWA ===== */
-  let deferredPrompt;
-  const installLi = document.createElement("li");
-  const installBtn = document.createElement("a");
-  installBtn.href = "#";
-  installBtn.innerHTML = "📲 INSTALAR APP";
-  installBtn.style.color = "#4cd137"; // Verde brillante para destacar
-  installLi.style.display = "none";
-  installLi.appendChild(installBtn);
-  navLinks.appendChild(installLi);
-
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-  // Si ya está instalada, no hacemos nada, el botón se queda oculto.
-  if (isStandalone) return;
-
-  // En iOS, no hay evento 'beforeinstallprompt', así que mostramos el botón
-  // con instrucciones si no está instalada.
-  if (isIos) {
-    installLi.style.display = "block";
-  }
-
-  // Para Android y Desktop, esperamos el evento que dispara el navegador.
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installLi.style.display = "block";
-    console.log("✅ PWA lista para instalar");
-  });
-
-  installBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    // Lógica para Android/Desktop
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        installLi.style.display = "none";
-        deferredPrompt = null; 
-      });
-    } 
-    // Lógica para iOS (muestra un simple aviso)
-    else if (isIos) {
-      alert("Para instalar en iPhone/iPad:\n1. Toca el botón 'Compartir' (cuadrado con flecha hacia arriba) en la barra inferior.\n2. Busca y selecciona la opción 'Agregar al inicio'.");
-    }
-  });
-
-  window.addEventListener('appinstalled', () => {
+  const setupInstallButton = () => {
+    let deferredPrompt;
+    const installLi = document.createElement("li");
+    const installBtn = document.createElement("a");
+    installBtn.href = "#";
+    installBtn.innerHTML = "📲 INSTALAR APP";
+    installBtn.style.color = "#4cd137";
     installLi.style.display = "none";
-    deferredPrompt = null;
-    console.log("✅ App instalada correctamente");
-  });
+    installLi.appendChild(installBtn);
+    navLinks.appendChild(installLi);
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isStandalone) {
+      return;
+    }
+
+    if (isIos) {
+      installLi.style.display = "block";
+    }
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installLi.style.display = "block";
+      console.log("✅ PWA lista para instalar");
+    });
+
+    installBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          installLi.style.display = "none";
+          deferredPrompt = null;
+        });
+      } else if (isIos) {
+        alert("Para instalar en iPhone/iPad:\n1. Toca el botón 'Compartir' (cuadrado con flecha hacia arriba) en la barra inferior.\n2. Busca y selecciona la opción 'Agregar al inicio'.");
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installLi.style.display = "none";
+      deferredPrompt = null;
+      console.log("✅ App instalada correctamente");
+    });
+  };
+  setupInstallButton();
 
   /* ===== SCROLL ANIMATIONS ===== */
   const observerOptions = {
