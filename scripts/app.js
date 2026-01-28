@@ -1,30 +1,162 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const loadingOverlay = document.getElementById('loading-overlay');
   const mainContent = document.querySelector('main');
   const footer = document.querySelector('footer');
 
-  // Ocultar contenido principal al inicio para la animación de carga
   if (mainContent) mainContent.style.opacity = 0;
   if (footer) footer.style.opacity = 0;
 
   const hideLoader = () => {
     if (!loadingOverlay) return;
     loadingOverlay.style.opacity = 0;
-    // Eliminar el loader del DOM después de la transición para no interferir
     loadingOverlay.addEventListener('transitionend', () => {
       loadingOverlay.remove();
     }, { once: true });
 
-    // Mostrar contenido principal con una transición suave
     if (mainContent) mainContent.style.transition = 'opacity 0.5s ease-in';
     if (footer) footer.style.transition = 'opacity 0.5s ease-in';
     if (mainContent) mainContent.style.opacity = 1;
     if (footer) footer.style.opacity = 1;
   };
 
+  /* ===== CARGAR DATOS DE GOOGLE SHEETS ===== */
+  // El catálogo se cargará exclusivamente desde Google Sheets.
+  let catalog = [];
+
+  const fetchCatalogFromSheets = async () => {
+    const SHEET_ID = "19AIPO8SiAsRgC16cM37sIWKME3VPxefgFyUskJXX5z8";
+    const PRODUCTS_SHEET = "Productos";
+    const IMAGES_SHEET = "Imagenes";
+    const PRICES_SHEET = "Precios";
+
+    try {
+      // 1. Fetch all three sheets concurrently
+      const [productsRes, imagesRes, pricesRes] = await Promise.all([
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRODUCTS_SHEET}`),
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${IMAGES_SHEET}`),
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRICES_SHEET}`)
+      ]);
+
+      if (!productsRes.ok || !imagesRes.ok || !pricesRes.ok) {
+        throw new Error("Falló la conexión con una o más hojas de Google Sheets.");
+      }
+
+      const productsData = await productsRes.json();
+      const imagesData = await imagesRes.json();
+      const pricesData = await pricesRes.json();
+
+      // 2. Process images and prices into Maps for quick lookup
+      const imagesMap = new Map();
+      let currentImgId = null; // Variable para recordar el ID anterior (Fill-Down)
+
+      imagesData.forEach(row => {
+        // Detectar ID (Soportar mayúsculas/minúsculas y celdas vacías)
+        const rawId = row.id_producto || row.Id_producto;
+        if (rawId && String(rawId).trim() !== "") {
+            currentImgId = String(rawId).trim();
+        }
+
+        if (!currentImgId) return; // Si no hay ID actual, saltamos
+
+        if (!imagesMap.has(currentImgId)) {
+          imagesMap.set(currentImgId, []);
+        }
+        
+        // Detectar URL (Soportar 'url_imagen' o 'Imagenes')
+        let imageUrl = row.url_imagen || row.Imagenes || "";
+        
+        if (imageUrl && String(imageUrl).trim() !== "") {
+            imageUrl = String(imageUrl).trim();
+            if (imageUrl.includes('drive.google.com') && imageUrl.includes('/file/d/')) {
+                try {
+                    const driveId = imageUrl.split('/file/d/')[1].split('/')[0];
+                    imageUrl = `https://lh3.googleusercontent.com/d/${driveId}`;
+                } catch(e) { /* keep original on error */ }
+            }
+            imagesMap.get(currentImgId).push(imageUrl);
+        }
+      });
+
+      const pricesMap = new Map();
+      let currentPriceId = null; // Variable para recordar el ID anterior (Fill-Down)
+
+      pricesData.forEach(row => {
+        const rawId = row.id_producto || row.Id_producto;
+        if (rawId && String(rawId).trim() !== "") {
+            currentPriceId = String(rawId).trim();
+        }
+
+        if (!currentPriceId) return;
+
+        if (!pricesMap.has(currentPriceId)) {
+          pricesMap.set(currentPriceId, []);
+        }
+        
+        // Soportar mayúsculas/minúsculas en Cantidad y Precio
+        const quantity = parseInt(row.cantidad || row.Cantidad || row.Cantidades);
+        const price = parseFloat(row.precio || row.Precio || row.Precios);
+        
+        if (!isNaN(quantity) && !isNaN(price)) {
+            pricesMap.get(currentPriceId).push({ quantity, price });
+        }
+      });
+
+      // 3. Build the final catalog structure
+      const newCatalog = [];
+      let currentSection = null;
+
+      productsData.forEach(row => {
+        // Detect Category
+        const catId = row.Categoria;
+        if (catId && String(catId).trim() !== "") {
+          currentSection = {
+            id: String(catId).toLowerCase().trim(),
+            title: row.Titulo || catId,
+            subtitle: row.Subtitulo || "",
+            items: []
+          };
+          newCatalog.push(currentSection);
+        }
+
+        // Detect Product
+        const prodName = row.Nombre_Producto;
+        const prodId = row.Id_producto;
+        if (prodName && prodId && String(prodName).trim() !== "") {
+          
+          const productImages = imagesMap.get(prodId) || [];
+          const productPrices = pricesMap.get(prodId) || [];
+          
+          productPrices.sort((a, b) => a.quantity - b.quantity);
+
+          const mainImage = productImages.length > 0 ? productImages[0] : "";
+
+          if (currentSection) {
+            currentSection.items.push({
+              name: prodName,
+              description: row.Descripcion || "",
+              image: mainImage,
+              images: productImages,
+              prices: productPrices
+            });
+          }
+        }
+      });
+
+      if (newCatalog.length > 0) {
+        catalog = newCatalog; // Reemplazamos el catálogo con los datos de la nube.
+      }
+
+    } catch (error) {
+      console.error("❌ Error crítico al cargar el catálogo desde Excel. La tienda no mostrará productos.", error);
+    }
+  };
+
+  // Esperamos a que carguen los datos antes de construir la página
+  await fetchCatalogFromSheets();
+
   const preloadResources = async () => {
     const imageUrls = [];
-    if (typeof catalog !== 'undefined') {
+    if (catalog.length > 0) {
       catalog.forEach(section => {
         section.items.forEach(item => {
           if (item.image) imageUrls.push(item.image);
@@ -64,10 +196,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }));
 
     await Promise.all(promises);
-    setTimeout(hideLoader, 500); // Pequeña demora para que la animación de llenado se vea completa
+    setTimeout(hideLoader, 500);
   };
 
-  // Inyectar librería de Partículas
+  /* ===== PARTICULAS ===== */
   const loadParticles = () => {
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
@@ -114,18 +246,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(script);
   };
 
-  // Iniciar la precarga y luego las partículas
   preloadResources().then(() => {
-    // Cargar partículas después de que todo esté visible para no sobrecargar el inicio
-    // OPTIMIZACIÓN: No cargar partículas en móviles para mejorar rendimiento
     if (window.innerWidth > 768) {
       setTimeout(loadParticles, 500);
     }
 
-    // SCROLL AUTOMÁTICO: Si hay un hash en la URL (ej. #pines-pequenos), ir al producto
     if (window.location.hash) {
       const targetId = window.location.hash.substring(1);
-      // Esperamos un poco a que el DOM termine de acomodarse
       setTimeout(() => {
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
@@ -135,7 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Inyectar HTML de Componentes
   const componentsHtml = `
     <!-- LIGHTBOX -->
     <div class="lightbox-overlay" id="lightbox">
@@ -212,14 +338,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeCartBtn = document.getElementById("closeCart");
   const checkoutBtn = document.getElementById("checkoutBtn");
 
-  // FUNCIÓN NUEVA: Validar y actualizar precios al cargar
   const validateCartPrices = () => {
-    if (!cart.length || typeof catalog === 'undefined') return;
+    if (!cart.length || !catalog.length) return;
     
     let cartUpdated = false;
 
     cart.forEach(item => {
-      // 1. Buscar el producto en el catálogo actual por nombre
       let product = null;
       for (const section of catalog) {
         const found = section.items.find(p => p.name === item.name);
@@ -229,18 +353,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Si no existe el producto o no tiene precios fijos, saltar
       if (!product || !product.prices) return;
 
       let currentPriceTier = null;
 
-      // 2. Determinar qué precio corresponde
       if (item.priceIndex !== undefined && item.priceIndex !== 'custom') {
-        // Método nuevo: Usamos el índice guardado
         currentPriceTier = product.prices[item.priceIndex];
       } else if (!item.priceIndex && item.price > 0) {
-        // Método compatibilidad (para items viejos): Intentamos adivinar por la cantidad en la descripción
-        // Ej: "12 Unidades (60 Bs)" -> Extraemos "12"
         const match = item.desc.match(/^(\d+)\s+Unidad/);
         if (match) {
           const qty = parseInt(match[1]);
@@ -248,14 +367,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // 3. Actualizar si el precio ha cambiado
       if (currentPriceTier) {
         if (item.price !== currentPriceTier.price) {
           item.price = currentPriceTier.price;
-          // Actualizamos también el texto descriptivo
           item.desc = `${currentPriceTier.quantity} ${currentPriceTier.quantity === 1 ? "Unidad" : "Unidades"} (${currentPriceTier.price} Bs)`;
           
-          // Recalcular ahorro si aplica
           const unitPriceObj = product.prices.find(p => p.quantity === 1);
           if (unitPriceObj && currentPriceTier.quantity > 1) {
              item.originalPrice = unitPriceObj.price * currentPriceTier.quantity;
@@ -287,7 +403,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Ejecutar validación al iniciar
   validateCartPrices();
   updateCartUI();
 
@@ -574,10 +689,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let originalPrice = 0;
     let saving = 0;
-    let selectedIdx = 'custom'; // Por defecto custom
+    let selectedIdx = 'custom';
 
     if (option.price > 0 && currentProduct.prices) {
-      // Capturamos el índice seleccionado para guardarlo
       selectedIdx = document.querySelector(
         'input[name="priceOption"]:checked',
       ).value;
@@ -598,7 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fullDesc: currentProduct.description,
       originalPrice: originalPrice,
       saving: saving,
-      priceIndex: selectedIdx // Guardamos referencia para futuras actualizaciones
+      priceIndex: selectedIdx
     });
 
     saveCart();
@@ -609,7 +723,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast(`¡${currentProduct.name} agregado al carrito!`);
   });
 
-  // Actualizar Nombre de Marca
   const brand = document.querySelector(".nav-brand");
   if (brand) {
     brand.innerHTML = `
@@ -637,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </label>
   `;
 
-  if (typeof catalog !== 'undefined') {
+  if (catalog.length > 0) {
     catalog.forEach((section) => {
       filterHtml += `
         <label class="filter-option">
@@ -650,20 +763,17 @@ document.addEventListener("DOMContentLoaded", () => {
   filterHtml += `</div></div></div>`;
   container.insertAdjacentHTML("afterbegin", filterHtml);
 
-  // Lógica del Dropdown
   const dropdownBtn = document.getElementById("filterDropdownBtn");
   const dropdownContent = document.getElementById("filterDropdownContent");
   const allCheckbox = container.querySelector('input[value="all"]');
   const categoryCheckboxes = container.querySelectorAll('.filter-option input:not([value="all"])');
 
-  // Abrir/Cerrar Dropdown
   dropdownBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     dropdownContent.classList.toggle("show");
     dropdownBtn.classList.toggle("active");
   });
 
-  // Cerrar al hacer click fuera
   document.addEventListener("click", (e) => {
     if (!dropdownBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
       dropdownContent.classList.remove("show");
@@ -702,7 +812,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // Evento para "Todos"
   allCheckbox.addEventListener('change', (e) => {
     if (e.target.checked) {
       categoryCheckboxes.forEach(cb => cb.checked = true);
@@ -712,7 +821,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateFilterState();
   });
 
-  // Eventos para Categorías individuales
   categoryCheckboxes.forEach(cb => {
     cb.addEventListener("change", (e) => {
       const activeCount = Array.from(categoryCheckboxes).filter(c => c.checked).length;
@@ -736,13 +844,12 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleBtn.innerHTML = navLinks.classList.contains("active") ? "✕" : "☰";
     });
 
-    // Detectar scroll en el contenedor que corresponda (body o window)
     const onScroll = () => {
       const scrollY = window.scrollY || document.body.scrollTop || document.documentElement.scrollTop;
       navbar.classList.toggle("scrolled", scrollY > 50);
     };
     window.addEventListener("scroll", onScroll);
-    document.body.addEventListener("scroll", onScroll); // Escuchar scroll del body
+    document.body.addEventListener("scroll", onScroll);
 
     navbar.insertBefore(toggleBtn, navLinks);
   }
@@ -784,7 +891,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const card = document.createElement("article");
       card.className = "product-card floating";
       
-      // Generar ID único para el producto (ej: "Pines pequeños" -> "pines-pequenos")
       const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
       card.id = productId;
 
@@ -803,7 +909,6 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `<div class="image-badge">1 / ${images.length}</div>`
           : "";
       
-      // Verificar si es favorito
       const isFav = favorites.includes(item.name);
 
       const isLCP = globalImageCounter < 4;
@@ -864,21 +969,19 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      // Lógica del Botón Compartir
       const shareBtn = card.querySelector(".share-btn");
       shareBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         
-        const pageUrl = "https://gambito404.github.io/test/"; // URL fija de producción
-        const text = `¡Hola! Mira este producto de Mishi Studio: *${item.name}*\n${item.description}\n\nVer aquí: ${pageUrl}#${productId}`;
+        const pageUrl = "https://gambito404.github.io/MishiStudio/"; 
+        const text = `Mira este producto de Mishi Studio: *${item.name}*\n${pageUrl}#${productId}`;
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
       });
 
-      // Lógica del Botón Favoritos
       const favBtn = card.querySelector(".fav-btn");
       favBtn.addEventListener("click", (e) => {
-        e.stopPropagation(); // Evitar abrir el lightbox
+        e.stopPropagation();
         const index = favorites.indexOf(item.name);
         
         if (index === -1) {
@@ -891,7 +994,8 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast(`💔 ${item.name} eliminado de favoritos`);
         }
         localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
-        updateFavBadge(true); // true = reproducir sonido
+        updateFavBadge(true);
+        renderFavorites();
       });
 
       const contactBtn = card.querySelector(".btn-contact");
@@ -915,7 +1019,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }, 300); 
         };
 
-        // --- Controles Manuales ---
         prevBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           currentIndex = (currentIndex - 1 + images.length) % images.length;
@@ -944,7 +1047,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const favSection = document.createElement("section");
   favSection.className = "catalog-section";
   favSection.id = "favorites";
-  favSection.style.display = "none"; // Oculta por defecto
   favSection.innerHTML = `
     <header class="section-header fade-in-up">
       <h2>Mis Favoritos ❤️</h2>
@@ -954,18 +1056,16 @@ document.addEventListener("DOMContentLoaded", () => {
     <div id="fav-empty" style="text-align:center; width:100%; display:none; color:#ccc; margin-top:20px;">
       <p style="font-size: 1.2rem;">No tienes favoritos aún.</p>
       <p style="font-size: 0.9rem; opacity: 0.7;">¡Dale amor a los productos que te gusten!</p>
-      <button class="btn-contact" style="max-width:200px; margin:30px auto;" id="btn-back-catalog">Ver Catálogo</button>
+      <button class="btn-contact" style="max-width:200px; margin:30px auto;" id="btn-back-catalog">Ir al inicio</button>
     </div>
   `;
   container.appendChild(favSection);
 
-  // Función para renderizar favoritos
-  const renderFavorites = () => {
+  function renderFavorites() {
     const grid = document.getElementById("favorites-grid");
     const emptyMsg = document.getElementById("fav-empty");
     grid.innerHTML = "";
 
-    // Actualizar lista desde localStorage
     favorites = JSON.parse(localStorage.getItem("mishiFavorites")) || [];
 
     if (favorites.length === 0) {
@@ -974,9 +1074,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     emptyMsg.style.display = "none";
 
-    // Buscar objetos completos de productos favoritos
     const favItems = [];
-    if (typeof catalog !== 'undefined') {
+    if (catalog.length > 0) {
       catalog.forEach(section => {
         section.items.forEach(item => {
           if (favorites.includes(item.name)) {
@@ -986,9 +1085,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Reutilizamos la lógica de creación de tarjetas (simplificada para esta vista)
     favItems.forEach(({ item, sectionId }) => {
-      // Clonamos la lógica visual básica
       const card = document.createElement("article");
       card.className = "product-card floating";
       
@@ -1012,20 +1109,17 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      // Evento Compartir
       const shareBtn = card.querySelector(".share-btn");
       shareBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        // Generamos el mismo ID que en el catálogo principal
         const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
         
-        const pageUrl = "https://gambito404.github.io/test/"; // URL fija de producción
-        const text = `¡Hola! Mira este producto de Mishi Studio: *${item.name}*\n${item.description}\n\nVer aquí: ${pageUrl}#${productId}`;
+        const pageUrl = "https://gambito404.github.io/MishiStudio/";
+        const text = `Mira este producto de Mishi Studio: *${item.name}*\n${pageUrl}#${productId}`;
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
       });
 
-      // Evento Quitar Favorito
       const favBtn = card.querySelector(".fav-btn");
       favBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1035,23 +1129,20 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
           card.style.opacity = "0";
           card.style.transform = "scale(0.8)";
-          setTimeout(() => renderFavorites(), 300); // Recargar vista
+          setTimeout(() => renderFavorites(), 300);
           showToast(`💔 ${item.name} eliminado`);
-          updateFavBadge(true); // true = reproducir sonido
+          updateFavBadge(true);
         }
       });
 
-      // Evento Cotizar
       card.querySelector(".btn-contact").addEventListener("click", () => openModal(item));
       
-      // Evento Lightbox
       card.querySelector(".card-image").addEventListener("click", () => openLightbox(images, 0));
 
       grid.appendChild(card);
     });
-  };
+  }
 
-  // Agregar enlace al Navbar
   const favLi = document.createElement("li");
   const favLink = document.createElement("a");
   favLink.href = "#favorites";
@@ -1059,7 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
   favLi.appendChild(favLink);
   navLinks.appendChild(favLi);
 
-  // Generador de sonido "Pop" (Sin archivos externos)
+  /* ===== SONIDO POP ===== */
   const playPopSound = () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
@@ -1069,11 +1160,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    // Frecuencia: Caída rápida de agudo a grave (efecto burbuja/pop)
     osc.frequency.setValueAtTime(600, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
 
-    // Volumen: Golpe rápido y desvanecimiento
     gain.gain.setValueAtTime(0.1, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
 
@@ -1095,41 +1184,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   };
-  updateFavBadge(false); // Ejecutar al inicio (sin sonido)
+  updateFavBadge(false);
+  renderFavorites();
 
-  // Evento Click en "Favoritos"
   favLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    // Ocultar secciones normales
-    document.querySelectorAll(".catalog-section:not(#favorites)").forEach(el => el.style.display = 'none');
-    // Mostrar favoritos
-    favSection.style.display = "block";
-    renderFavorites();
-    
-    // Actualizar estado visual del menú
-    document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
-    favLink.classList.add("active");
-    
-    // Cerrar menú móvil
     navLinks.classList.remove("active");
     const toggleBtn = document.querySelector(".menu-toggle");
     if (toggleBtn) toggleBtn.innerHTML = "☰";
-
-    window.scrollTo(0, 0);
   });
 
-  // Volver al catálogo desde "Favoritos vacíos"
   document.getElementById("btn-back-catalog").addEventListener("click", () => {
-    window.location.reload();
-  });
-
-  // Restaurar vista normal al hacer clic en otras secciones
-  document.querySelectorAll(".nav-links a:not([href='#favorites'])").forEach(link => {
-    link.addEventListener("click", () => {
-      favSection.style.display = "none";
-      // Restaurar visibilidad según el filtro actual
-      updateFilterState(); 
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   /* ===== BOTÓN DE INSTALACIÓN PWA ===== */
@@ -1177,7 +1242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("✅ App instalada correctamente");
   });
 
-  // Observer para animaciones al hacer scroll
+  /* ===== SCROLL ANIMATIONS ===== */
   const observerOptions = {
     threshold: 0.1,
     rootMargin: "0px 0px -50px 0px"
@@ -1200,7 +1265,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
 
-  // Scroll Spy: Detectar sección activa
+  /* ===== SCROLL SPY ===== */
   const sections = document.querySelectorAll("section.catalog-section");
   const navItems = document.querySelectorAll(".nav-links a");
 
@@ -1223,7 +1288,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   sections.forEach((section) => spyObserver.observe(section));
 
-  // AUTO-RELOAD: Detectar nueva versión y recargar automáticamente
+  /* ===== AUTO RELOAD ===== */
   let refreshing = false;
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -1234,7 +1299,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===== CUSTOM SCROLLBAR (LA TRAMPITA JS) ===== */
-  // 1. Crear e inyectar los elementos HTML
   const scrollTrack = document.createElement('div');
   scrollTrack.id = 'custom-scrollbar-track';
   const scrollThumb = document.createElement('div');
@@ -1242,16 +1306,13 @@ document.addEventListener("DOMContentLoaded", () => {
   scrollTrack.appendChild(scrollThumb);
   document.body.appendChild(scrollTrack);
 
-  // 2. Función para actualizar posición y tamaño
   const updateScrollThumb = () => {
     const docHeight = document.documentElement.scrollHeight;
     const winHeight = window.innerHeight;
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     
-    // Calcular altura del pulgar (mínimo 50px para que sea tocable)
     let thumbHeight = Math.max((winHeight / docHeight) * winHeight, 50); 
     
-    // Calcular posición top
     const maxScrollTop = docHeight - winHeight;
     const maxThumbTop = winHeight - thumbHeight;
     
@@ -1263,19 +1324,15 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollThumb.style.height = `${thumbHeight}px`;
     scrollThumb.style.transform = `translateY(${thumbTop}px)`;
     
-    // Ocultar si no hay scroll
     scrollTrack.style.display = docHeight <= winHeight ? 'none' : 'block';
   };
 
-  // 3. Escuchar eventos para sincronizar
   window.addEventListener('scroll', updateScrollThumb);
   window.addEventListener('resize', updateScrollThumb);
   
-  // Detectar cambios en el tamaño del contenido (imágenes cargando, filtros, etc.)
   const resizeObserver = new ResizeObserver(() => updateScrollThumb());
   resizeObserver.observe(document.body);
 
-  // 4. Permitir arrastrar la barra (Drag & Drop)
   let isDragging = false;
   let startY = 0;
   let startScrollTop = 0;
@@ -1284,7 +1341,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isDragging = true;
     startY = clientY;
     startScrollTop = window.scrollY || document.documentElement.scrollTop;
-    document.body.style.userSelect = 'none'; // Evitar seleccionar texto
+    document.body.style.userSelect = 'none';
   };
 
   const onDrag = (clientY) => {
@@ -1306,14 +1363,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.style.userSelect = '';
   };
 
-  // Eventos Mouse (PC)
   scrollThumb.addEventListener('mousedown', (e) => startDrag(e.clientY));
   document.addEventListener('mousemove', (e) => onDrag(e.clientY));
   document.addEventListener('mouseup', stopDrag);
 
-  // Eventos Touch (Móvil)
   scrollThumb.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Evitar comportamientos raros
+    e.preventDefault();
     startDrag(e.touches[0].clientY);
   }, { passive: false });
   

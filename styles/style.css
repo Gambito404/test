@@ -16,8 +16,8 @@
 
 html {
   background-color: #0f0c29;
-  scrollbar-width: none; /* Ocultar barra nativa (Firefox) */
-  -ms-overflow-style: none; /* Ocultar barra nativa (IE/Edge) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overflow-x: hidden;
 }
 
@@ -26,7 +26,7 @@ body {
   background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
   color: var(--dark);
   line-height: 1.6;
-  height: auto; /* Dejamos que el cuerpo crezca con el contenido */
+  height: auto;
   min-height: 100vh;
 }
 
@@ -69,19 +69,17 @@ body {
 .loader-logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
 
 /* ===== SCROLLBAR PERSONALIZADO ===== */
-/* 1. Ocultar barra nativa en WebKit (Chrome/Safari) */
 html::-webkit-scrollbar {
   display: none;
 }
 
-/* 2. Estilos de nuestra barra JS "Falsa" */
 #custom-scrollbar-track {
   position: fixed;
   top: 0;
   right: 0;
-  width: 10px; /* Ancho cómodo para móvil */
+  width: 10px;
   height: 100%;
-  background: rgba(26, 26, 46, 0.5); /* Fondo semitransparente */
+  background: rgba(26, 26, 46, 0.5);
   z-index: 9999;
 }
 
@@ -215,7 +213,7 @@ html::-webkit-scrollbar {
   border-radius: 10px;
   margin-left: 5px;
   vertical-align: middle;
-  display: none; /* Se oculta si es 0 */
+  display: none;
   min-width: 20px;
   text-align: center;
   justify-content: center;
@@ -537,7 +535,7 @@ html::-webkit-scrollbar {
 }
 
 .share-btn:hover {
-  background: #25D366; /* Verde WhatsApp */
+  background: #25D366;
   border-color: #25D366;
   transform: scale(1.1);
 }
@@ -561,7 +559,7 @@ html::-webkit-scrollbar {
   backdrop-filter: blur(4px);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 10;
-  padding-top: 2px; /* Ajuste visual para centrar el corazón */
+  padding-top: 2px;
 }
 
 .fav-btn:hover {
