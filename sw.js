@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.3.19";
+const CACHE_NAME = "mishi-v3.3.21";
 const ASSETS = [
   "./images/logo.webp",
   "./images/dribbble_1.gif",
@@ -106,10 +106,19 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(
       fetch(networkRequest).then((networkResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, networkResponse.clone());
+          // OPTIMIZACIÓN: Guardamos en caché usando la URL "limpia" (sin el ?t=...)
+          // Así evitamos llenar la memoria con múltiples copias del mismo archivo.
+          const cleanUrl = new URL(e.request.url);
+          cleanUrl.search = ''; 
+          cache.put(cleanUrl.toString(), networkResponse.clone());
           return networkResponse;
         });
-      }).catch(() => caches.match(e.request))
+      }).catch(() => {
+        // Si falla internet, buscamos la versión limpia en el caché
+        const cleanUrl = new URL(e.request.url);
+        cleanUrl.search = '';
+        return caches.match(cleanUrl.toString());
+      })
     );
     return;
   }

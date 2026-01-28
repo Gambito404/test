@@ -30,11 +30,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const PRICES_SHEET = "Precios";
 
     try {
-      // 1. Fetch all three sheets concurrently
+      // Usamos { cache: 'reload' } para obligar al navegador a ignorar el caché
+      // y descargar datos frescos, sin romper la URL con parámetros extra.
+      const fetchOptions = { cache: 'reload' };
+
       const [productsRes, imagesRes, pricesRes] = await Promise.all([
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRODUCTS_SHEET}`),
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${IMAGES_SHEET}`),
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRICES_SHEET}`)
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRODUCTS_SHEET}`, fetchOptions),
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${IMAGES_SHEET}`, fetchOptions),
+        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRICES_SHEET}`, fetchOptions)
       ]);
 
       if (!productsRes.ok || !imagesRes.ok || !pricesRes.ok) {
@@ -859,6 +862,36 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let globalImageCounter = 0;
 
+  /* ===== FUNCIÓN HELPER: GENERAR HTML DE PRECIOS ===== */
+  const generatePriceTableHtml = (pricesList) => {
+    if (!pricesList || pricesList.length === 0) return "";
+    
+    return `
+        <table class="price-table">
+          <thead>
+            <tr>
+              <th>Cant.</th>
+              <th>P. Unit.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pricesList
+              .map((p) => {
+                const unitVal = parseFloat((p.price / p.quantity).toFixed(2));
+                return `
+              <tr>
+                <td>${p.quantity}</td>
+                <td>${unitVal} Bs</td>
+                <td>${p.price} Bs</td>
+              </tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      `;
+  };
+
   /* ===== FUNCIÓN HELPER: CREAR TARJETA DE PRODUCTO ===== */
   const createProductCard = (item, forceEager = false) => {
       const card = document.createElement("article");
@@ -891,33 +924,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const pricesList = item.prices || [];
 
-      const pricesHtml =
-        pricesList.length > 0
-          ? `
-        <table class="price-table">
-          <thead>
-            <tr>
-              <th>Cant.</th>
-              <th>P. Unit.</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${pricesList
-              .map((p) => {
-                const unitVal = parseFloat((p.price / p.quantity).toFixed(2));
-                return `
-              <tr>
-                <td>${p.quantity}</td>
-                <td>${unitVal} Bs</td>
-                <td>${p.price} Bs</td>
-              </tr>`;
-              })
-              .join("")}
-          </tbody>
-        </table>
-      `
-          : "";
+      const pricesHtml = generatePriceTableHtml(pricesList);
 
       card.innerHTML = `
         <div class="card-image-container">
@@ -1428,26 +1435,48 @@ document.addEventListener("DOMContentLoaded", async () => {
             hasNew = true;
           } else {
             // Producto existente: Verificar cambios (Precio, Desc, Imagen)
-            const relevantOld = JSON.stringify({
-                p: oldItem.prices, d: oldItem.description, i: oldItem.image, imgs: oldItem.images 
-            });
-            const relevantNew = JSON.stringify({
-                p: newItem.prices, d: newItem.description, i: newItem.image, imgs: newItem.images 
-            });
+            const oldData = JSON.stringify({ p: oldItem.prices, d: oldItem.description });
+            const newData = JSON.stringify({ p: newItem.prices, d: newItem.description });
+            
+            const oldImgs = JSON.stringify({ i: oldItem.image, imgs: oldItem.images });
+            const newImgs = JSON.stringify({ i: newItem.image, imgs: newItem.images });
 
-            if (relevantOld !== relevantNew) {
-                // Cambio detectado -> Repintar tarjeta (Silencioso)
-                const productId = newItem.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
-                const oldCard = document.getElementById(productId);
-                if (oldCard) {
-                    // Forzamos 'eager' para que la imagen cargue al instante y no rompa el layout
+            const productId = newItem.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+            const oldCard = document.getElementById(productId);
+
+            if (oldCard) {
+                // CASO 1: Cambiaron las imágenes (Requiere reemplazo cuidadoso)
+                if (oldImgs !== newImgs) {
                     const newCard = createProductCard(newItem, true);
-                    // Copiamos todas las clases del elemento viejo para mantener el estado (floating, etc.)
                     newCard.className = oldCard.className;
-                    oldCard.replaceWith(newCard);
+                    
+                    const tempImg = new Image();
+                    const imgUrl = newItem.image || (newItem.images && newItem.images[0]);
+                    
+                    if (imgUrl) {
+                        tempImg.src = imgUrl;
+                        tempImg.onload = () => oldCard.replaceWith(newCard);
+                        tempImg.onerror = () => oldCard.replaceWith(newCard);
+                    } else {
+                        oldCard.replaceWith(newCard);
+                    }
+                    Object.assign(oldItem, newItem);
+                } 
+                // CASO 2: Solo cambió Precio o Descripción (Parcheo directo sin parpadeo)
+                else if (oldData !== newData) {
+                    // Actualizar Descripción
+                    const descEl = oldCard.querySelector('.card-body p');
+                    if (descEl) descEl.textContent = newItem.description;
+
+                    // Actualizar Tabla de Precios
+                    const priceContainer = oldCard.querySelector('.pricing-container');
+                    if (priceContainer) {
+                        priceContainer.innerHTML = generatePriceTableHtml(newItem.prices);
+                    }
+
+                    // Actualizar memoria
+                    Object.assign(oldItem, newItem);
                 }
-                // Actualizar datos en memoria
-                Object.assign(oldItem, newItem);
             }
           }
         });
