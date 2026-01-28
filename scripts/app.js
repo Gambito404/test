@@ -1432,4 +1432,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   setInterval(checkForUpdates, 10000);
+
+  /* ===== DETECCIÓN OFFLINE/ONLINE ===== */
+  const offlineOverlay = document.getElementById('offline-overlay');
+
+  const updateOnlineStatus = () => {
+    if (!offlineOverlay) return;
+    if (navigator.onLine) {
+      offlineOverlay.classList.remove('active');
+    } else {
+      offlineOverlay.classList.add('active');
+    }
+  };
+
+  window.addEventListener('online', () => { updateOnlineStatus(); showToast("✅ Conexión restaurada"); });
+  window.addEventListener('offline', () => { updateOnlineStatus(); });
+  
+  updateOnlineStatus(); // Verificar estado inicial al cargar
 });

@@ -39,11 +39,8 @@ self.addEventListener("fetch", (e) => {
 
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      // Intenta obtener la página de la red.
       fetch(e.request)
         .catch(() => {
-          // Si la red falla, se sirve el index.html desde el caché.
-          // Esto es crucial para la experiencia offline de la PWA.
           return caches.match('./index.html');
         })
     );
@@ -57,7 +54,6 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Estrategia Network First para la API (Google Sheets)
   if (url.hostname.includes('opensheet.elk.sh')) {
     const networkRequest = new Request(e.request, { cache: 'reload' });
 

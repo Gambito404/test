@@ -6,13 +6,11 @@
   <title>Catálogo</title>
   <meta name="description" content="Catálogo oficial de Mishi Studio. Encuentra pins, stickers, llaveros y productos personalizados con diseños únicos.">
   
-  <!-- Favicon -->
+
   <link rel="icon" type="image/webp" href="images/logo.webp">
-  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f0c29">
 
-  <!-- Redes Sociales (Open Graph) -->
   <meta property="og:title" content="Catálogo Mishi Studio 🐱">
   <meta property="og:description" content="Pins, stickers y llaveros personalizados. Diseños únicos y alta calidad.">
   <meta property="og:image" content="images/logo.webp">
@@ -48,6 +46,16 @@
         <circle class="loader-progress" cx="60" cy="60" r="54" />
       </svg>
       <img src="images/logo.webp" class="loader-logo" alt="Cargando...">
+    </div>
+  </div>
+
+  <!-- ===== PANTALLA OFFLINE (SIN INTERNET) ===== -->
+  <div id="offline-overlay">
+    <div class="offline-content">
+      <img src="images/cavernicola.gif" alt="Sin Internet" class="offline-img">
+      <h2>¡Uga Uga!</h2>
+      <p>No hay internet. Revisa tu conexión para seguir navegando.</p>
+      <button onclick="window.location.reload()">Reintentar</button>
     </div>
   </div>
 
@@ -96,7 +104,6 @@
   <!-- Registro PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      // Evitar errores en consola si se abre desde archivo local (file://)
       if (window.location.protocol === 'file:') {
         console.warn('⚠️ PWA desactivada localmente. Usa Live Server o sube a GitHub Pages para probar la instalación.');
       } else {
