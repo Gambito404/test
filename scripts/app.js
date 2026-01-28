@@ -860,9 +860,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   let globalImageCounter = 0;
 
   /* ===== FUNCIÓN HELPER: CREAR TARJETA DE PRODUCTO ===== */
-  const createProductCard = (item) => {
+  const createProductCard = (item, forceEager = false) => {
       const card = document.createElement("article");
-      card.className = "product-card floating";
+      card.className = "product-card"; // Quitamos 'floating' por defecto para evitar glitches
       
       const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
       card.id = productId;
@@ -884,7 +884,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       
       const isFav = favorites.includes(item.name);
 
-      const isLCP = globalImageCounter < 4;
+      const isLCP = forceEager || globalImageCounter < 4;
       const loadingAttr = isLCP ? 'loading="eager"' : 'loading="lazy"';
       const priorityAttr = isLCP ? 'fetchpriority="high"' : '';
       globalImageCounter++;
@@ -1048,6 +1048,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 3. Crear Tarjetas
     section.items.forEach((item) => {
       const card = createProductCard(item);
+      card.classList.add("floating"); // Agregamos la animación aquí, una vez insertado
       grid.appendChild(card);
     });
 
@@ -1439,8 +1440,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const productId = newItem.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
                 const oldCard = document.getElementById(productId);
                 if (oldCard) {
-                    const newCard = createProductCard(newItem);
-                    if (oldCard.classList.contains("floating")) newCard.classList.add("floating");
+                    // Forzamos 'eager' para que la imagen cargue al instante y no rompa el layout
+                    const newCard = createProductCard(newItem, true);
+                    // Copiamos todas las clases del elemento viejo para mantener el estado (floating, etc.)
+                    newCard.className = oldCard.className;
                     oldCard.replaceWith(newCard);
                 }
                 // Actualizar datos en memoria

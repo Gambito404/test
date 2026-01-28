@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.3.18";
+const CACHE_NAME = "mishi-v3.3.19";
 const ASSETS = [
   "./images/logo.webp",
   "./images/dribbble_1.gif",
