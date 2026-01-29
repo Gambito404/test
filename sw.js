@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.4.4";
+const CACHE_NAME = "mishi-v3.4.5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -55,7 +55,8 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  if (url.hostname.includes('opensheet.elk.sh')) {
+  // Estrategia Network-First para los datos de Google Sheets (CSV)
+  if (url.hostname.includes('docs.google.com') && url.pathname.includes('/gviz/tq')) {
     const networkRequest = new Request(e.request, { cache: 'reload' });
 
     e.respondWith(

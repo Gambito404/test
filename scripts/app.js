@@ -56,21 +56,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     const PRICES_SHEET = "Precios";
 
     try {
-      const fetchOptions = { cache: 'reload' };
+      // --- NUEVO: Función para parsear CSV (Reemplazo de opensheet) ---
+      const parseCSV = (text) => {
+        const rows = [];
+        let currentRow = [];
+        let currentVal = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const nextChar = text[i + 1];
+          if (inQuotes) {
+            if (char === '"' && nextChar === '"') { currentVal += '"'; i++; }
+            else if (char === '"') { inQuotes = false; }
+            else { currentVal += char; }
+          } else {
+            if (char === '"') { inQuotes = true; }
+            else if (char === ',') { currentRow.push(currentVal); currentVal = ''; }
+            else if (char === '\n' || char === '\r') {
+              if (currentVal || currentRow.length) currentRow.push(currentVal);
+              if (currentRow.length) rows.push(currentRow);
+              currentRow = []; currentVal = '';
+              if (char === '\r' && nextChar === '\n') i++;
+            } else { currentVal += char; }
+          }
+        }
+        if (currentVal || currentRow.length) currentRow.push(currentVal);
+        if (currentRow.length) rows.push(currentRow);
+        const headers = rows[0].map(h => h.trim());
+        return rows.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, index) => { obj[h] = row[index] || ""; });
+          return obj;
+        });
+      };
 
-      const [productsRes, imagesRes, pricesRes] = await Promise.all([
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRODUCTS_SHEET}`, fetchOptions),
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${IMAGES_SHEET}`, fetchOptions),
-        fetch(`https://opensheet.elk.sh/${SHEET_ID}/${PRICES_SHEET}`, fetchOptions)
+      const fetchSheet = async (sheetName) => {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Error al cargar ${sheetName}`);
+        const text = await res.text();
+        return parseCSV(text);
+      };
+
+      const [productsData, imagesData, pricesData] = await Promise.all([
+        fetchSheet(PRODUCTS_SHEET),
+        fetchSheet(IMAGES_SHEET),
+        fetchSheet(PRICES_SHEET)
       ]);
-
-      if (!productsRes.ok || !imagesRes.ok || !pricesRes.ok) {
-        throw new Error("Falló la conexión con una o más hojas de Google Sheets.");
-      }
-
-      const productsData = await productsRes.json();
-      const imagesData = await imagesRes.json();
-      const pricesData = await pricesRes.json();
 
       const imagesMap = new Map();
       let currentImgId = null;
