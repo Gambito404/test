@@ -950,11 +950,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
 
       const shareBtn = card.querySelector(".share-btn");
-      shareBtn.addEventListener("click", (e) => {
+      shareBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
         
-        const pageUrl = "https://gambito404.github.io/MishiStudio/"; 
-        const text = `Mira este producto de Mishi Studio: *${item.name}*\n${pageUrl}#${productId}`;
+        const pageUrl = "https://gambito404.github.io/MishiStudio/";
+        const productUrl = `${pageUrl}#${productId}`;
+        
+        // 1. Intentar usar el menú nativo del celular
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: 'Mishi Studio', text: `Mira este producto: ${item.name} 🐱`, url: productUrl });
+            return;
+          } catch (err) {}
+        }
+
+        // 2. Fallback: WhatsApp
+        const text = `Mira este producto de Mishi Studio: *${item.name}*\n${productUrl}`;
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
       });

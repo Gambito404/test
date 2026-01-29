@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mishi-v3.4.3";
+const CACHE_NAME = "mishi-v3.4.4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,7 +9,8 @@ const ASSETS = [
   "./images/logo.webp",
   "./images/icon.webp",
   "./images/cavernicola.gif",
-  "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+  "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap",
+  "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"
 ];
 
 self.addEventListener("install", (e) => {
