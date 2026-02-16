@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ===== CARGAR DATOS DE GOOGLE SHEETS ===== */
   let catalog = [];
+  let allProductsRegistry = new Map();
 
   const loadCatalogData = async () => {
     const SHEET_ID = "19AIPO8SiAsRgC16cM37sIWKME3VPxefgFyUskJXX5z8";
@@ -158,22 +159,48 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       const newCatalog = [];
+      const newRegistry = new Map();
       let currentSection = null;
+      let othersSection = null;
 
       productsData.forEach(row => {
         const catId = row.Categoria;
+        
+        // Verificar si hay una nueva categoría y su estado
         if (catId && String(catId).trim() !== "") {
-          currentSection = {
-            id: String(catId).toLowerCase().trim(),
-            title: row.Titulo || catId,
-            subtitle: row.Subtitulo || "",
-            items: []
-          };
-          newCatalog.push(currentSection);
+          // Leemos la columna "Estado Categoria". Si no existe o está vacía, asumimos "activo".
+          const catStatus = row["Estado Categoria"] || "activo";
+          const isCatActive = String(catStatus).toLowerCase().trim() === "activo";
+
+          if (isCatActive) {
+            currentSection = {
+              id: String(catId).toLowerCase().trim(),
+              title: row.Titulo || catId,
+              subtitle: row.Subtitulo || "",
+              items: []
+            };
+            newCatalog.push(currentSection);
+          } else {
+            // Si la categoría está inactiva, los productos van a "Otros"
+            if (!othersSection) {
+              othersSection = {
+                id: "otros",
+                title: "Otros",
+                subtitle: "Productos variados",
+                items: []
+              };
+            }
+            currentSection = othersSection;
+          }
         }
 
         const prodName = row.Nombre_Producto;
         const prodId = row.Id_producto;
+        
+        // Verificar estado del producto
+        const prodStatus = row.Estado || "activo";
+        const isProdActive = String(prodStatus).toLowerCase().trim() === "activo";
+
         if (prodName && prodId && String(prodName).trim() !== "") {
           
           const productImages = imagesMap.get(prodId) || [];
@@ -183,31 +210,40 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           const mainImage = productImages.length > 0 ? productImages[0] : "";
 
-          if (currentSection) {
-            currentSection.items.push({
-              name: prodName,
-              description: row.Descripcion || "",
-              image: mainImage,
-              images: productImages,
-              prices: productPrices
-            });
+          const productObj = {
+            name: prodName,
+            description: row.Descripcion || "",
+            image: mainImage,
+            images: productImages,
+            prices: productPrices,
+            isActive: isProdActive
+          };
+
+          newRegistry.set(prodName, productObj);
+
+          if (isProdActive && currentSection) {
+            currentSection.items.push(productObj);
           }
         }
       });
 
-      if (newCatalog.length > 0) {
-        return newCatalog;
+      if (othersSection && othersSection.items.length > 0) {
+        newCatalog.push(othersSection);
       }
-      return [];
+
+      return { catalog: newCatalog, registry: newRegistry };
 
     } catch (error) {
       console.error("❌ Error crítico al cargar el catálogo desde Excel. La tienda no mostrará productos.", error);
-      return [];
+      return { catalog: [], registry: new Map() };
     }
   };
 
   const initialData = await loadCatalogData();
-  if (initialData.length > 0) catalog = initialData;
+  if (initialData.catalog.length > 0) {
+    catalog = initialData.catalog;
+    allProductsRegistry = initialData.registry;
+  }
 
   const preloadResources = async () => {
     const imageUrls = [];
@@ -1136,72 +1172,83 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     emptyMsg.style.display = "none";
 
-    const favItems = [];
-    if (catalog.length > 0) {
-      catalog.forEach(section => {
-        section.items.forEach(item => {
-          if (favorites.includes(item.name)) {
-            favItems.push({ item, sectionId: section.id });
+    favorites.forEach(favName => {
+      const item = allProductsRegistry.get(favName);
+      
+      if (item) {
+        const card = document.createElement("article");
+        card.className = "product-card floating";
+        if (!item.isActive) card.classList.add("disabled");
+        
+        const images = item.images || (item.image ? [item.image] : []);
+        const mainImage = images.length > 0 ? images[0] : "";
+
+        const statusText = !item.isActive ? '<strong style="color:#ff4757; display:block; margin-bottom:5px;">🚫 NO DISPONIBLE</strong>' : '';
+        const btnText = !item.isActive ? 'No disponible' : 'Cotizar';
+        const btnDisabled = !item.isActive ? 'disabled' : '';
+
+        card.innerHTML = `
+          <div class="card-image-container">
+            <img src="${mainImage}" class="card-image" alt="${item.name}" width="280" height="220" loading="lazy">
+            <button class="fav-btn active" aria-label="Quitar de favoritos">♥</button>
+          </div>
+          <div class="card-body">
+            <h3>${item.name}</h3>
+            <p>${statusText}${item.description}</p>
+            <button class="btn-contact" ${btnDisabled}>${btnText}</button>
+          </div>
+        `;
+
+        const favBtn = card.querySelector(".fav-btn");
+        favBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const index = favorites.indexOf(favName);
+          if (index > -1) {
+            favorites.splice(index, 1);
+            localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
+            card.style.opacity = "0";
+            card.style.transform = "scale(0.8)";
+            setTimeout(() => renderFavorites(), 300);
+            showToast(`💔 ${favName} eliminado`);
+            updateFavBadge(true);
           }
         });
-      });
-    }
 
-    favItems.forEach(({ item, sectionId }) => {
-      const card = document.createElement("article");
-      card.className = "product-card floating";
-      
-      const images = item.images || (item.image ? [item.image] : []);
-      const mainImage = images.length > 0 ? images[0] : "";
-
-      card.innerHTML = `
-        <div class="card-image-container">
-          <img src="${mainImage}" class="card-image" alt="${item.name}" width="280" height="220" loading="lazy">
-          <button class="share-btn" aria-label="Compartir en WhatsApp">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-            </svg>
-          </button>
-          <button class="fav-btn active" aria-label="Quitar de favoritos">♥</button>
-        </div>
-        <div class="card-body">
-          <h3>${item.name}</h3>
-          <p>${item.description}</p>
-          <button class="btn-contact">Cotizar</button>
-        </div>
-      `;
-
-      const shareBtn = card.querySelector(".share-btn");
-      shareBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const productId = item.name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
-        
-        const pageUrl = "https://gambito404.github.io/MishiStudio/";
-        const text = `Mira este producto de Mishi Studio: *${item.name}*\n${pageUrl}#${productId}`;
-        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-        window.open(url, '_blank');
-      });
-
-      const favBtn = card.querySelector(".fav-btn");
-      favBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const index = favorites.indexOf(item.name);
-        if (index > -1) {
-          favorites.splice(index, 1);
-          localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
-          card.style.opacity = "0";
-          card.style.transform = "scale(0.8)";
-          setTimeout(() => renderFavorites(), 300);
-          showToast(`💔 ${item.name} eliminado`);
-          updateFavBadge(true);
+        if (item.isActive) {
+           card.querySelector(".btn-contact").addEventListener("click", () => openModal(item));
+           card.querySelector(".card-image").addEventListener("click", () => openLightbox(images, 0));
         }
-      });
 
-      card.querySelector(".btn-contact").addEventListener("click", () => openModal(item));
-      
-      card.querySelector(".card-image").addEventListener("click", () => openLightbox(images, 0));
-
-      grid.appendChild(card);
+        grid.appendChild(card);
+      } else {
+        // Producto eliminado completamente del Excel
+        const card = document.createElement("article");
+        card.className = "product-card disabled";
+        card.innerHTML = `
+          <div class="card-image-container" style="background:#222; display:flex; align-items:center; justify-content:center;">
+            <span style="font-size:3rem;">🚫</span>
+            <button class="fav-btn active">♥</button>
+          </div>
+          <div class="card-body">
+            <h3>${favName}</h3>
+            <p style="color:#ff4757">Este producto ya no existe.</p>
+            <button class="btn-contact" disabled style="border-color:#555; color:#555;">No disponible</button>
+          </div>
+        `;
+        
+        card.querySelector(".fav-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          const index = favorites.indexOf(favName);
+          if (index > -1) {
+            favorites.splice(index, 1);
+            localStorage.setItem("mishiFavorites", JSON.stringify(favorites));
+            renderFavorites();
+            updateFavBadge(true);
+            showToast(`💔 ${favName} eliminado`);
+          }
+        });
+        grid.appendChild(card);
+      }
     });
   }
 
@@ -1255,14 +1302,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (toggleBtn) toggleBtn.innerHTML = "☰";
   });
 
-  document.getElementById("btn-back-catalog").addEventListener("click", () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  const btnBack = document.getElementById("btn-back-catalog");
+  if (btnBack) {
+    btnBack.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
   /* ===== BOTÓN DE INSTALACIÓN PWA ===== */
   const setupInstallButton = () => {
     const installLi = document.createElement("li");
-    installLi.id = "pwa-install-li"; // ID para encontrarlo desde el evento global
+    installLi.id = "pwa-install-li"; 
     const installBtn = document.createElement("a");
     installBtn.href = "#";
     installBtn.innerHTML = "📲 INSTALAR APP";
@@ -1274,18 +1324,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-    if (isStandalone) {
-      return;
-    }
-
-    if (isIos) {
-      installLi.style.display = "block";
-    }
-
-    // Si el evento ocurrió antes de llegar aquí, mostramos el botón ahora
-    if (deferredPrompt) {
-      installLi.style.display = "block";
-    }
+    if (isStandalone) return;
+    if (isIos) installLi.style.display = "block";
+    if (deferredPrompt) installLi.style.display = "block";
 
     installBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1303,22 +1344,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.addEventListener('appinstalled', () => {
       installLi.style.display = "none";
       deferredPrompt = null;
-      console.log("✅ App instalada correctamente");
     });
   };
   setupInstallButton();
 
   /* ===== SCROLL ANIMATIONS ===== */
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: "0px 0px -50px 0px"
-  };
-
+  const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('is-visible');
-        
         if (entry.target.classList.contains('product-card')) {
           setTimeout(() => {
             entry.target.classList.remove('fade-in-up', 'is-visible');
@@ -1328,19 +1363,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }, observerOptions);
-
   document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
 
   /* ===== SCROLL SPY ===== */
   const sections = document.querySelectorAll("section.catalog-section");
   const navItems = document.querySelectorAll(".nav-links a");
-
-  const spyOptions = {
-    root: null,
-    rootMargin: "-30% 0px -70% 0px",
-    threshold: 0
-  };
-
   const spyObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -1350,21 +1377,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (activeLink) activeLink.classList.add("active");
       }
     });
-  }, spyOptions);
-
+  }, { root: null, rootMargin: "-30% 0px -70% 0px", threshold: 0 });
   sections.forEach((section) => spyObserver.observe(section));
 
-  /* ===== AUTO RELOAD ===== */
-  let refreshing = false;
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-  }
-
-  /* ===== CUSTOM SCROLLBAR (LA TRAMPITA JS) ===== */
+  /* ===== CUSTOM SCROLLBAR ===== */
   const scrollTrack = document.createElement('div');
   scrollTrack.id = 'custom-scrollbar-track';
   const scrollThumb = document.createElement('div');
@@ -1376,87 +1392,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     const docHeight = document.documentElement.scrollHeight;
     const winHeight = window.innerHeight;
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    
     let thumbHeight = Math.max((winHeight / docHeight) * winHeight, 50); 
-    
     const maxScrollTop = docHeight - winHeight;
     const maxThumbTop = winHeight - thumbHeight;
-    
     let thumbTop = 0;
-    if (maxScrollTop > 0) {
-        thumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
-    }
-
+    if (maxScrollTop > 0) thumbTop = (scrollTop / maxScrollTop) * maxThumbTop;
     scrollThumb.style.height = `${thumbHeight}px`;
     scrollThumb.style.transform = `translateY(${thumbTop}px)`;
-    
     scrollTrack.style.display = docHeight <= winHeight ? 'none' : 'block';
   };
-
   window.addEventListener('scroll', updateScrollThumb);
   window.addEventListener('resize', updateScrollThumb);
-  
-  const resizeObserver = new ResizeObserver(() => updateScrollThumb());
-  resizeObserver.observe(document.body);
-
-  let isDragging = false;
-  let startY = 0;
-  let startScrollTop = 0;
-
-  const startDrag = (clientY) => {
-    isDragging = true;
-    startY = clientY;
-    startScrollTop = window.scrollY || document.documentElement.scrollTop;
-    document.body.style.userSelect = 'none';
-  };
-
-  const onDrag = (clientY) => {
-    if (!isDragging) return;
-    const winHeight = window.innerHeight;
-    const docHeight = document.documentElement.scrollHeight;
-    const thumbHeight = scrollThumb.offsetHeight;
-    const maxThumbTop = winHeight - thumbHeight;
-    const maxScrollTop = docHeight - winHeight;
-
-    const deltaY = clientY - startY;
-    const scrollDelta = (deltaY / maxThumbTop) * maxScrollTop;
-    
-    window.scrollTo(0, startScrollTop + scrollDelta);
-  };
-
-  const stopDrag = () => {
-    isDragging = false;
-    document.body.style.userSelect = '';
-  };
-
-  scrollThumb.addEventListener('mousedown', (e) => startDrag(e.clientY));
-  document.addEventListener('mousemove', (e) => onDrag(e.clientY));
-  document.addEventListener('mouseup', stopDrag);
-
-  scrollThumb.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    startDrag(e.touches[0].clientY);
-  }, { passive: false });
-  
-  document.addEventListener('touchmove', (e) => {
-    if(isDragging) e.preventDefault();
-    onDrag(e.touches[0].clientY);
-  }, { passive: false });
-  
-  document.addEventListener('touchend', stopDrag);
+  new ResizeObserver(() => updateScrollThumb()).observe(document.body);
 
   /* ===== AUTO UPDATE (POLLING 10s) ===== */
   let updateNotificationShown = false;
-
+      
   const checkForUpdates = async () => {
     if (updateNotificationShown) return;
 
-    const newCatalog = await loadCatalogData();
+    const data = await loadCatalogData();
     
-    if (!newCatalog || newCatalog.length === 0) return;
+    if (!data.catalog || data.catalog.length === 0) return;
 
     const currentData = JSON.stringify(catalog);
-    const newData = JSON.stringify(newCatalog);
+    const newData = JSON.stringify(data.catalog);
 
     if (currentData !== newData) {
         updateNotificationShown = true;

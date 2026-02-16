@@ -501,6 +501,19 @@ html::-webkit-scrollbar {
   z-index: 10;
 }
 
+.product-card.disabled {
+  opacity: 0.8;
+  filter: grayscale(0.8);
+}
+.product-card.disabled .card-image {
+  opacity: 0.5;
+}
+.product-card.disabled .btn-contact {
+  pointer-events: none;
+  border-color: #555;
+  color: #888;
+}
+
 .card-image-container {
   position: relative;
   height: 220px;
@@ -1198,7 +1211,7 @@ footer::before {
 /* ===== CARRITO FLOTANTE ===== */
 .cart-fab {
   position: fixed;
-  bottom: 560px;
+  bottom: 500px;
   right: 30px;
   background: var(--primary);
   color: white;
